@@ -1,0 +1,8 @@
+# The prebuilt Studio is independent of the reader application container.
+FROM cairn-deps:local
+
+WORKDIR /srv/cairn-studio
+COPY workflow-canvas/dist ./
+
+EXPOSE 18101
+CMD ["python", "-m", "http.server", "18101", "--bind", "0.0.0.0", "--directory", "/srv/cairn-studio"]

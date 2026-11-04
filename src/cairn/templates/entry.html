@@ -1,0 +1,106 @@
+{% extends "_v3.html" %}
+{# 手动输入一道题（v3 · G2-6）：拍卷子页文字链进来的表单能力页，永不在必经路径上。
+   所有 action / 字段名（subject/question_type/content/answer/analysis/lang/audio_text、
+   批量 include_/content_/answer_/audio_text_/lang_/row_count/pasted、force=1）逐字不动；
+   只换壳，术语按设计蓝图 §4.1 全部换成人话。 #}
+
+{% block title %}Cairn 凯恩 · 手动输入一道题{% endblock %}
+
+{% block content %}
+<h1 class="page-title">手动输入一道题</h1>
+
+{% if batch_result is defined and batch_result %}
+<p class="notice">收进去 {{ batch_result.created }} 条，跳过 {{ batch_result.skipped }} 条（重复）</p>
+{% endif %}
+
+{% if created_id is defined %}
+<p class="notice">已收进去，错题 id = {{ created_id }}。<a class="btn--ghost" href="/practice">去练一题</a></p>
+{% endif %}
+
+{% if error is defined and error %}
+<p class="notice notice--danger">{{ error }}</p>
+{% endif %}
+
+<section class="section">
+  <span class="section__title">整段粘贴</span>
+  <div class="ask-card">
+    <form method="post" action="/entry/batch/preview">
+      <textarea class="edit-form__input" name="pasted" rows="8" placeholder="一行一个词：apple 苹果&#10;苹果 píngguǒ">{{ pasted if pasted is defined and pasted else '' }}</textarea>
+      <p class="hint--foot">行首编号和 Unit/Lesson 会自动去掉；说明性长句会被丢弃；同一批重复词只留一条。</p>
+      <button type="submit" class="btn btn--secondary">先看一眼</button>
+    </form>
+  </div>
+</section>
+
+{% if preview is defined and preview %}
+<section class="section">
+  <span class="section__title">确认这几条</span>
+  <form method="post" action="/entry/batch/commit">
+    <input type="hidden" name="row_count" value="{{ preview|length }}">
+    <table class="table table--scroll">
+      <thead>
+        <tr><th class="pick">保留</th><th>提示</th><th>要写的</th><th>朗读提示</th><th>语言</th><th>查重</th></tr>
+      </thead>
+      <tbody>
+        {% for row in preview %}
+        <tr>
+          <td class="pick"><input type="checkbox" name="include_{{ loop.index0 }}" {% if not row.duplicate_note %}checked{% endif %}></td>
+          <td><input name="content_{{ loop.index0 }}" value="{{ row.content }}"></td>
+          <td><input name="answer_{{ loop.index0 }}" value="{{ row.answer }}"></td>
+          <td><input name="audio_text_{{ loop.index0 }}" value="{{ row.audio_text or '' }}" placeholder="留空=不朗读"></td>
+          <td>
+            <select name="lang_{{ loop.index0 }}">
+              <option value="en" {% if row.lang == 'en' %}selected{% endif %}>en</option>
+              <option value="zh" {% if row.lang == 'zh' %}selected{% endif %}>zh</option>
+            </select>
+          </td>
+          <td class="hint--foot">{{ row.duplicate_note }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="hint--foot">要删掉某条就取消「保留」；字段可直接改。查重命中的行默认不添加，确认是新题再勾回来。</p>
+    <button type="submit" class="btn btn--primary">确认提交</button>
+  </form>
+</section>
+{% elif preview is defined %}
+<p class="notice notice--danger">没有填出可收的词条，检查一下每行是不是「词 + 释义」。</p>
+{% endif %}
+
+<section class="section">
+  <span class="section__title">一道一道填</span>
+  {% if duplicate_warning is defined and duplicate_warning %}
+  <p class="notice notice--warn">{{ duplicate_warning }}</p>
+  {% endif %}
+  <form method="post" action="/entry" class="edit-form">
+    <div class="ask-card">
+      <label class="edit-form__label">学科 <input class="edit-form__input" name="subject" value="{{ form.subject if form is defined and form else '' }}"></label>
+      <label class="edit-form__label">类别（必填） <input class="edit-form__input" name="question_type" required value="{{ form.question_type if form is defined and form else '' }}"></label>
+      <label class="edit-form__label">朗读语言
+        <select class="edit-form__input" name="lang">
+          <option value="auto" {% if not (form is defined and form and form.lang in ('en', 'zh')) %}selected{% endif %}>自动判断</option>
+          <option value="en" {% if form is defined and form and form.lang == 'en' %}selected{% endif %}>英文</option>
+          <option value="zh" {% if form is defined and form and form.lang == 'zh' %}selected{% endif %}>中文</option>
+        </select>
+      </label>
+      <label class="edit-form__label">题目 / 听写提示<textarea class="edit-form__input" name="content" rows="4" placeholder="普通题填题面；听写填中文意思或拼音">{{ form.content if form is defined and form else '' }}</textarea></label>
+      <label class="edit-form__label">答案 / 要写的内容<textarea class="edit-form__input" name="answer" rows="2" placeholder="听写填要写的汉字或单词">{{ form.answer if form is defined and form else '' }}</textarea></label>
+      <label class="edit-form__label">朗读提示（可选）<input class="edit-form__input" name="audio_text" value="{{ form.audio_text if form is defined and form and form.audio_text else '' }}" placeholder="中文词填拼音；英文词和数学题留空"></label>
+      <label class="edit-form__label">讲解（可不填）<textarea class="edit-form__input" name="analysis" rows="2">{{ (form.analysis or '') if form is defined and form else '' }}</textarea></label>
+    </div>
+    <div class="select-actions">
+      <button type="submit" class="btn btn--primary">保存</button>
+      {% if force_offer is defined and force_offer %}
+      <button type="submit" class="btn btn--secondary" name="force" value="1">仍然添加</button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+<div class="foot-links">
+  <a class="btn--ghost" href="/practice">去练一题</a>
+  <a class="btn--ghost" href="/export">导出学习数据</a>
+  <a class="btn--ghost" href="/export/anki" title="下载 .apkg，导入 Anki 用">导出 Anki 牌组</a>
+  <a class="btn--ghost" href="/import">导入备份</a>
+</div>
+{% endblock %}

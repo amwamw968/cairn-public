@@ -1,0 +1,26 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · {{ 'Explain your thinking' if lang == 'en' else '说说解题思路' }}{% endblock %}
+{% block content %}
+<p class="hint"><a id="recap-language" class="btn--ghost" href="?lang={{ 'zh' if lang == 'en' else 'en' }}">{{ '中文' if lang == 'en' else 'English' }}</a></p>
+<h1 class="page-title">{{ 'Explain your thinking' if lang == 'en' else '说说解题思路' }}</h1>
+<div class="ask-card"><p class="practice-stem">{{ question.content }}</p></div>
+{% if pending %}<p><a href="/practice/recap/result/{{ pending.id }}?lang={{ lang }}">{{ 'Continue your previous response' if lang == 'en' else '继续上次还没完成的复述' }}</a></p>{% endif %}
+<p class="hint">{{ 'Write how you would solve it. AI feedback is a suggestion and does not grade your answer.' if lang == 'en' else '写下你会怎么做。AI 的反馈只是练习提示，不会自动评分。' }}</p>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/practice/recap/{{ item_id }}">
+  <input type="hidden" name="lang" value="{{ lang }}"><input type="hidden" name="request_key" value="{{ request_key }}">
+  <label for="recap-text">{{ 'Your thinking' if lang == 'en' else '你的想法' }}</label>
+  <textarea class="edit-form__input" id="recap-text" name="text" maxlength="2000" rows="5">{{ text }}</textarea>
+  <div class="select-actions"><button class="btn btn--primary" type="submit" name="action" value="submit">{{ 'Continue' if lang == 'en' else '提交思路' }}</button></div>
+  <details class="reject-box"><summary>{{ 'I cannot explain yet' if lang == 'en' else '还不会说' }}</summary>
+    <p class="hint">{{ 'This records that you need to practice this question again.' if lang == 'en' else '确认后会把这道题记为需要重练。' }}</p>
+    <button class="btn btn--secondary" type="submit" name="action" value="unsure">{{ 'Record for review' if lang == 'en' else '确认，记为需要重练' }}</button>
+  </details>
+</form>
+<p><a class="btn--ghost" href="/practice?item_id={{ item_id }}">{{ 'Back to practice' if lang == 'en' else '返回练习' }}</a></p>
+<script>
+document.getElementById('recap-language').addEventListener('click', (event) => {
+  if (document.getElementById('recap-text').value.trim() && !confirm({{ ('Switching languages discards your unsaved text. Continue?' if lang == 'en' else '切换语言会丢失尚未保存的文字，继续吗？') | tojson }})) event.preventDefault();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 导入备份{% endblock %}
+
+{% block main %}
+<h1>导入备份</h1>
+
+<p class="notice notice--warn">
+  只用于「新机器恢复」或「本地库被删后恢复」：<strong>目标库必须是空库</strong>。
+  当前库只要有一道题、一条复习记录，导入就会被整批拒绝（不做合并，避免半对半错的数据）。
+  导入前建议先到 <a href="/export">导出备份</a> 留一份底。
+  该 JSON 是学习数据备份，不包含卷子照片、作者端工作流或运行进度。
+</p>
+
+<form method="post" action="/import" enctype="multipart/form-data">
+  <label class="field">备份文件（<code>.json</code>，就是 /export 下来的那个）</label>
+  <input type="file" name="backup" accept=".json,application/json" required>
+  <p class="hint">导入是一次事务：中途任何一步失败，整批回滚，库里不会留下导了一半的数据。</p>
+  <button type="submit" class="btn btn--primary">导入</button>
+</form>
+
+{% if error is defined and error %}
+<p class="notice notice--danger">{{ error }}</p>
+{% endif %}
+
+{% if report is defined and report %}
+<h2>导入结果</h2>
+{% if report.lines() %}
+<table class="table">
+  <thead><tr><th>表</th><th>条数</th></tr></thead>
+  <tbody>
+    {% for name, count in report.lines() %}
+    <tr><td>{{ name }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="notice notice--info">导入完成，共 {{ report.total }} 条（备份版本 schema_version={{ report.schema_version }}）。<a href="/practice">去练一题</a></p>
+{% else %}
+<p class="notice notice--info">备份读完了，但里面没有可恢复的行。</p>
+{% endif %}
+{% endif %}
+{% endblock %}

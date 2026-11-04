@@ -1,0 +1,27 @@
+# 依赖层：只装第三方依赖，不含本项目代码。很少重建（依赖变了才重建）。
+#
+# 优先用「离线 wheel 包」deploy/wheelhouse.tar.gz（由 deploy/make-wheels.sh 在 Mac 上生成）：
+#   构建零联网、版本冻结、可复现。
+# 没有离线包时才退回在线安装（钉清华源 + 重试），避免 files.pythonhosted.org 超时。
+FROM hub.rat.dev/library/python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+COPY deploy/requirements.txt /tmp/requirements.txt
+COPY deploy/wheelhouse.tar.gz* /tmp/
+
+RUN set -eux; \
+    if [ -f /tmp/wheelhouse.tar.gz ]; then \
+        echo "== 离线安装（wheelhouse）"; \
+        tar -xzf /tmp/wheelhouse.tar.gz -C /tmp; \
+        pip install --no-index --find-links /tmp/wheelhouse -r /tmp/requirements.txt; \
+        rm -rf /tmp/wheelhouse /tmp/wheelhouse.tar.gz; \
+    else \
+        echo "== 在线安装（清华源）"; \
+        pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+                    --timeout 60 --retries 5 -r /tmp/requirements.txt; \
+    fi
+
+WORKDIR /srv/cairn

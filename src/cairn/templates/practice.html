@@ -1,0 +1,271 @@
+{% extends "_v3.html" %}
+{# 练一题 → 这题怎么样 → 记下了（v3 · 蓝图 E.8/E.9/B.6）：一个模板四态
+   （ask / reveal / similar / graded）。四条不许动的东西（既有测试与后端都靠它们）：
+   1. class="exam-bar"（含 sprint 变体）与 id="exam-bar"；
+   2. class="play"（不带第二个类名）与 onclick='say(...)'：朗读键的唯一入口；
+   3. 所有 <form> 的 method / action / input name（含 rating 四个 value）；
+   4. ask 分支不引用 revealed：item 是 PracticeItem，结构上就没有答案。
+   全站唯一双主按钮例外在 reveal 态：「我懂了 / 还迷糊」同级（.btn--dual），
+   勉强会/早就会降为文字链——FSRS 四档能力不删。 #}
+
+{% block title %}Cairn 凯恩 · 练一题{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1 class="page-title">
+    {%- if mode == "ask" %}练一题{% if practice_total is defined and practice_total > 1 %}（第 {{ practice_x }}/{{ practice_total }} 题）{% endif %}
+    {%- elif mode == "reveal" %}这题怎么样
+    {%- elif mode == "similar" %}同类的题
+    {%- else %}这题记下了{% endif -%}
+  </h1>
+</div>
+
+{% if exam_bar %}
+{# 倒计时条：类名、id、sprint 变体逐字保留（既有测试逐字断言）。 #}
+<div class="exam-bar{% if exam_bar.in_sprint %} sprint{% endif %}" id="exam-bar">
+  {% if exam_bar.days_left == 0 %}
+  今天就是 {{ exam_bar.name }}
+  {% else %}
+  距离{{ exam_bar.name }}还有 {{ exam_bar.days_left }} 天
+  {% endif %}
+  {% if exam_bar.in_sprint and exam_bar.days_left > 0 %}
+  <span class="hint--foot">· 冲刺期：考后 {{ exam_bar.window_days }} 天内到期的题已提前排到考前</span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if error is defined and error %}
+<p class="notice notice--danger">{{ error }}</p>
+{% endif %}
+
+{% if strategy_switched %}
+<p class="notice" id="strategy-switched">已切换复习策略：历史记录保留，新的复习计划从今天重新计算。</p>
+{% endif %}
+
+{% if mode == "ask" %}
+  {% if item %}
+  {# 这一题：这一块不许出现答案——item 是 PracticeItem，模板里连 revealed 都不许出现。 #}
+  <div class="ask-card">
+  <p class="hint--foot">{{ item.subject }}{% if item.is_dictation %} · 听写{% endif %}</p>
+  <p class="practice-stem">{{ item.content }}</p>
+  {% if item.is_dictation %}
+  <p><button type="button" class="play" onclick='say({{ item.audio_text|tojson }}, {{ (item.lang or "zh")|tojson }})'>播放</button></p>
+  {% endif %}
+
+  <p class="hint">想不出来也可以直接点答完了</p>
+  <form method="post" action="/practice/reveal">
+    <input type="hidden" name="item_id" value="{{ item.error_item_id }}">
+    <div class="field">
+      <label class="edit-form__label edit-form__label--soft" for="learner-answer">我的答案（可不填）</label>
+      <textarea class="edit-form__input" id="learner-answer" name="learner_answer" rows="3"></textarea>
+    </div>
+    <div class="select-actions">
+      <button type="submit" class="btn btn--primary">答完了</button>
+    </div>
+  </form>
+  {% if item.tutor_enabled %}<p><a class="btn--ghost" href="/tutor?question_id={{ item.question_id }}">需要提示？一起想一想</a></p>{% endif %}
+  {% if item.recap_enabled %}<p><a class="btn--ghost" href="/practice/recap/{{ item.error_item_id }}">说说这道题怎么想</a></p>{% endif %}
+  </div>
+
+  {% if item.crop_url %}
+  <details class="original">
+    <summary class="btn--ghost">看原图（含上次作答）</summary>
+    <div class="figure figure--shown"><a href="{{ item.crop_url }}" target="_blank" rel="noopener"><img src="{{ item.crop_url }}" alt="这道题在卷子上的原图"></a></div>
+    <p class="figure__cap">点图片可在新窗口看原尺寸</p>
+  </details>
+  {% endif %}
+  {% else %}
+  <section class="empty">
+    <h1 class="empty__title">今天没有要练的题了</h1>
+    <p class="empty__text">拍一张卷子、圈出错的题，明天开始练。</p>
+    <div class="empty__cta"><a class="btn btn--primary" href="/">回今天看看</a></div>
+  </section>
+  {% endif %}
+
+{% elif mode == "reveal" %}
+  <p class="practice-stem">{{ revealed.content }}</p>
+  {% if revealed.answer %}
+  <p><button type="button" class="play" onclick='say({{ revealed.answer|tojson }}, {{ (revealed.lang or "zh")|tojson }})'>播放答案</button></p>
+  {% endif %}
+
+  {% if grade and not needs_manual %}
+  <div class="verdict">
+    <span class="verdict__label">机器判的</span>
+    <span>{% if grade.needs_review %}拿不准，请你看看{% elif grade.correct %}对{% else %}不对{% endif %}{% if grade.hint %}（{{ grade.hint }}）{% endif %}</span>
+  </div>
+  {% endif %}
+
+  <div class="verdict">
+    <span class="verdict__label">我的答案：</span>
+    <span>{{ learner_answer or "（没写）" }}</span>
+  </div>
+  <div class="verdict">
+    <span class="verdict__label">标准答案：</span>
+    <span>{% if revealed.answer %}{{ revealed.answer }}{% else %}（还没录）{% endif %}</span>
+  </div>
+  {% if revealed.analysis %}<p class="confirm-stem"><strong>讲解：</strong>{{ revealed.analysis }}</p>{% endif %}
+
+  {% if needs_manual %}
+  {# 没有标准答案：不自动判对错，交家长对照原图判断。 #}
+  <div class="manual" id="manual-grade">
+    <p class="hint">这道题还没有标准答案，你看到的是原题。请对照原图判断孩子做对没做对。</p>
+    <form method="post" action="/practice/grade" class="ratings">
+      <input type="hidden" name="item_id" value="{{ revealed.error_item_id }}">
+      <div class="dual">
+        <button type="submit" class="btn btn--dual" name="rating" value="good">做对了</button>
+        <button type="submit" class="btn btn--dual" name="rating" value="again">没做对</button>
+      </div>
+    </form>
+    <p class="hint--foot">这两键和自动判题一样会记一次复习、排下次到期。想补标准答案，去题目详情页。</p>
+    <p><a class="btn--ghost" href="/questions/{{ revealed.question_id }}">去题目详情补答案</a></p>
+  </div>
+  {% else %}
+  <form method="post" action="/practice/grade" class="ratings">
+    <input type="hidden" name="item_id" value="{{ revealed.error_item_id }}">
+    {# 全站唯一双主按钮例外：我懂了 / 还迷糊 同级；勉强会/早就会降为文字链（能力不删）。 #}
+    <div class="dual">
+      <button type="submit" class="btn btn--dual" name="rating" value="good">我懂了</button>
+      <button type="submit" class="btn btn--dual" name="rating" value="again">还迷糊</button>
+    </div>
+    <p class="confirm-links">
+      <button type="submit" class="linklike" name="rating" value="hard">勉强会</button>
+      <button type="submit" class="linklike" name="rating" value="easy">早就会了</button>
+    </p>
+  </form>
+  {% endif %}
+
+  {% if revealed.crop_url %}
+  <details class="original">
+    <summary class="btn--ghost">看原图（含上次作答）</summary>
+    <div class="figure figure--shown"><a href="{{ revealed.crop_url }}" target="_blank" rel="noopener"><img src="{{ revealed.crop_url }}" alt="这道题在卷子上的原图"></a></div>
+    <p class="figure__cap">点图片可以在新窗口看原尺寸。</p>
+    {% if not revealed.answer %}<p class="hint--foot">这道题还没有标准答案，请对照原图判断。</p>{% endif %}
+  </details>
+  {% endif %}
+
+  <p class="select-foot"><a class="btn--ghost" href="/practice/similar?item_id={{ revealed.error_item_id }}">再来一道同类的</a></p>
+
+{% elif mode == "similar" %}
+  {% if view %}
+  <p class="hint">同知识点、已排除原题；点一行就换到那道题上练。</p>
+  <div class="verdict">
+    <span class="verdict__label">原题</span>
+    <span>{{ view.content }}</span>
+  </div>
+  {% if view.concept_names %}
+  <p class="hint--foot">知识点：{% for name in view.concept_names %}<span class="side-nav__badge side-nav__badge--muted">{{ name }}</span>{% endfor %}</p>
+  {% endif %}
+
+  {% if view.untagged %}
+  <p class="notice notice--danger">这道题还没标知识点，先去补一个。</p>
+  <p class="hint--foot">标了知识点，才能从库里捞出同类的题；没标之前这里不会编出结果。</p>
+  <form method="post" action="/practice/similar/tag" class="edit-form">
+    <input type="hidden" name="item_id" value="{{ view.error_item_id }}">
+    <label class="edit-form__label">选一个已有知识点
+      {# 既有用例逐字断言 `<select name="concept_id">`，这里不能加任何属性 #}
+      <select name="concept_id">
+        <option value="">（不选，用下面新建的名字）</option>
+        {% for opt in view.concept_options %}
+        <option value="{{ opt.concept_id }}">{{ opt.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="edit-form__label">或者新建一个知识点<input class="edit-form__input" type="text" name="new_concept" placeholder="例如：进位"></label>
+    <button type="submit" class="btn btn--primary">挂到这个知识点</button>
+  </form>
+  {% if not view.concept_options %}
+  <p class="hint--foot">库里还没有这个学科的知识点，直接在下面新建一个。</p>
+  {% endif %}
+
+  {% elif view.items %}
+  <section class="section">
+    <span class="section__title">同知识点 {{ view.items|length }} 道</span>
+    <ul>
+      {% for it in view.items %}
+      <li>
+        <a class="list-row" href="/practice?item_id={{ it.error_item_id }}">
+          <span class="list-row__main clip-line">{{ it.content }}</span>
+          <span class="list-row__meta">{{ it.concept_label }} · {% if it.practiced %}练过 {{ it.practice_count }} 次{% else %}还没练过{% endif %}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="hint--foot">这些题和刚才那道同一个知识点，原题已排除。</p>
+  </section>
+
+  {% else %}
+  <p class="notice">这个知识点目前只有这一道题。</p>
+  <p class="hint--foot">要想练同类，得先有第二道挂着同一个知识点的题。</p>
+  <p><a class="btn--ghost" href="/entry">去手动输入一道同类的</a></p>
+  <p class="hint--foot"><strong>记下这个知识点</strong>，下次填新题时标上，同类题才找得到：
+    {% for name in view.concept_names %}<span class="side-nav__badge side-nav__badge--muted">{{ name }}</span>{% endfor %}
+  </p>
+  {% endif %}
+
+  <p><a class="btn--ghost" href="/practice">回到练一题</a></p>
+  {% endif %}
+
+{% elif mode == "graded" %}
+  {% if next_due_at is defined and next_due_at %}
+  {% set days_out = (next_due_at.date() - next_due_at.utcnow().date()).days %}
+  <p class="hint">这一次已经记下，下次到期的日子在下面。</p>
+  {% if passed_today is defined and (passed_today or again_today) %}
+  <p class="today-head__sub">今天 {{ passed_today }} 题过关，{{ again_today }} 题明天再来</p>
+  {% endif %}
+  <div class="facts">
+    <div class="facts__cell">
+      <p class="facts__value">{{ next_due_at.strftime("%Y-%m-%d") }}</p>
+      <p class="facts__caption">下次练它</p>
+    </div>
+    <div class="facts__cell">
+      <p class="facts__value">{{ days_out }} 天</p>
+      <p class="facts__caption">距今天数</p>
+    </div>
+    <div class="facts__cell">
+      <p class="facts__value">{% if graded_rating == "again" %}还迷糊{% elif graded_rating == "hard" %}勉强会{% elif graded_rating == "easy" %}早就会了{% else %}我懂了{% endif %}</p>
+      <p class="facts__caption">按你的自评</p>
+    </div>
+  </div>
+
+  <div class="select-actions">
+    <a class="btn btn--primary" href="/practice">再练一题</a>
+    <a class="btn btn--secondary" href="/scans">回卷子</a>
+  </div>
+
+  {# 既有测试（web_app / answer_backfill）逐字断言「判分成功」，留在页脚一行。 #}
+  <p class="hint--foot">判分成功：{{ graded_rating }}</p>
+  {% endif %}
+
+{% endif %}
+
+{% if strategy_options is defined and strategy_options %}
+{# 策略是配置项：收进页面末尾的折叠区（V3.1b 起不再占据顶部，不抢主按钮）。 #}
+<details class="trace" id="strategy-picker">
+  <summary class="btn--ghost">换个复习策略</summary>
+  <form method="post" action="/strategies/select" class="edit-form">
+    <label class="edit-form__label" for="strategy-id">复习策略（当前孩子的默认策略）</label>
+    <select class="edit-form__input" id="strategy-id" name="strategy_id">
+      {% for opt in strategy_options %}
+      {# 用短名做标签：完整 describe 含 "0.90" 之类数字，会撞上答题面不泄漏答案的检查 #}
+      <option value="{{ opt.id }}"{% if opt.id == current_strategy_id %} selected{% endif %}>{{ opt.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn--secondary">切换策略</button>
+    <p class="hint--foot">切换后历史记录保留，新的复习计划从今天重新计算。</p>
+  </form>
+</details>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 浏览器原生朗读（不引依赖）。播放按钮就是用户手势，iOS 不需要额外解锁。
+function say(text, lang) {
+  if (!text || !window.speechSynthesis) return;
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = lang === "en" ? "en-US" : "zh-CN";
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+</script>
+{% endblock %}

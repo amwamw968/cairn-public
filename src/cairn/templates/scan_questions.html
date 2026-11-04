@@ -1,0 +1,83 @@
+{% extends "_base.html" %}
+{% block title %}Cairn · 标错收进去 · 照片 #{{ scan.id }}{% endblock %}
+{% block workspace_class %} questions-workspace{% endblock %}
+{% block main %}
+
+<header class="workspace-header">
+<div class="workspace-brand"><img src="/static/logo-cairn.svg?v=20261103-ui" width="36" height="36" alt=""><h1>标错收进去 · 照片 #{{ scan.id }}</h1></div>
+<nav class="workspace-nav" aria-label="卷子工作区导航">
+  <a href="/scans">已拍</a><a href="/scans/{{ scan.id }}">照片详情</a>
+  <a href="/scans/{{ scan.id }}/ocr">整页识别</a><a href="/practice">练一题</a>
+</nav>
+</header>
+
+<p class="retry">
+  <a class="retry-link" href="/scans/{{ scan.id }}/frame">切得不对？我自己框</a>
+  <span class="hint">系统切出来的题不对时，自己在整页图上一道一道框，框住哪道就收进去哪道。</span>
+</p>
+
+<p class="total">共 {{ total }} 题{% if inferred_count %}，其中 {{ inferred_count }} 题题号是推测的{% endif %}{% if angle %} <span class="hint">· 检测到方向 {{ angle }}°，已按摆正后的卷面叠加</span>{% endif %}</p>
+
+{% if error %}<p class="error">识别失败：{{ error }}<br><span class="hint">没有切题结果就无法标错；先到整页识别页看看这张照片能不能读。</span></p>{% endif %}
+{% if not questions %}
+<div class="empty">
+  <p>这张照片没切出题（题号一个都没认出来）。换张更清楚的照片，或者自己在照片上一道一道框。</p>
+  <a class="btn btn--primary" href="/scans/{{ scan.id }}/frame">自己框题</a>
+</div>
+{% endif %}
+{% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+{% if red_count %}<p class="notice">有 {{ red_count }} 道题的题框里检测到红笔痕迹，已默认勾上（分不出是勾还是叉，红色分数也算），请核对后取消勾错的题。</p>{% endif %}
+{% for text in warnings %}<p class="warn">{{ text }}</p>{% endfor %}
+
+{% if img_style %}
+<div class="viewer" style="aspect-ratio: {{ page_width }} / {{ page_height }};">
+  <img class="shot" src="/scans/{{ scan.id }}/image" alt="照片 #{{ scan.id }}" style="{{ img_style }}">
+  {% for q in questions %}{% if q.style %}
+  <a class="box" href="#q-{{ q.no }}" style="{{ q.style }}" title="第 {{ q.no }} 题{% if q.inferred %}（题号未识别，是推测的）{% endif %}"><span>{{ q.no }}{% if q.inferred %}?{% endif %}</span></a>
+  {% endif %}{% endfor %}
+</div>
+<p class="hint">红框是每道题的边界框（摆正后坐标 {{ page_width }}×{{ page_height }}），点框跳到下面那一行。</p>
+{% else %}
+<p><img class="shot" src="/scans/{{ scan.id }}/image" alt="照片 #{{ scan.id }}"></p>
+<p class="hint">这张照片没有可用的题框坐标，只在下面按题号列出。</p>
+{% endif %}
+
+{% if questions %}
+<form method="post" action="/scans/{{ scan.id }}/questions">
+  <div class="row">
+    <label>科目
+      <select name="subject">
+        <option value="数学" {% if subject == '数学' %}selected{% endif %}>数学</option>
+        <option value="英语" {% if subject == '英语' %}selected{% endif %}>英语</option>
+        <option value="语文" {% if subject == '语文' %}selected{% endif %}>语文</option>
+      </select>
+    </label>
+    <label>类别
+      <input name="question_type" value="{{ question_type }}" size="10">
+    </label>
+    <span class="hint">整页同一科目/类别；填错可以到练习页再改。</span>
+  </div>
+
+  <ul class="pick">
+    {% for q in questions %}
+    <li>
+      <label>
+        <input type="checkbox" name="no" value="{{ q.no }}" id="q-{{ q.no }}" {% if q.is_wrong or q.red_mark %}checked{% endif %}>
+        <span class="no">第 {{ q.no }} 题{% if q.inferred %}?{% endif %}</span>
+        {% if q.inferred %}<span class="infer" title="卷面上没认出这道题的题号，是按跳号推出来的">题号是猜的，请核对</span>{% endif %}
+        {% if q.imported %}<span class="done">已收好</span>{% endif %}
+        {% if q.red_mark %}<span class="redmark" title="题框里有红笔痕迹，默认勾上，确认后可取消">检测到红笔</span>{% endif %}
+        <span class="{% if q.short %}short{% endif %}">{{ q.excerpt or '（题干为空，需人工补录）' }}</span>
+      </label>
+      <a class="btn btn--ghost" href="/scans/{{ scan.id }}/frame">切得不对？自己框</a>
+    </li>
+    {% endfor %}
+  </ul>
+  <p><button type="submit" class="btn btn--primary">把勾选的题收进错题本</button></p>
+  <p class="hint">只入勾选的题；已收好的题重复提交不会重复建。题干少于 {{ min_stem }} 字的题会被拒绝，需要人工补录后再来。</p>
+</form>
+{% endif %}
+
+<p class="hint">系统不判对错，也不识别手写答案：勾哪道，哪道就是错的（见 docs/WRONG-QUESTION-ENTRY.md）。</p>
+
+{% endblock %}

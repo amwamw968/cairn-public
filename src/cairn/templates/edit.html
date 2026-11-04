@@ -1,0 +1,35 @@
+{% extends "_v3.html" %}
+{# 改一下这道题（v3 · 蓝图 E.7）：全流程唯一表单页，永不在必经路径上。
+   字段名（content / answer / analysis）与 POST /questions/{id}/edit 逐字一致；
+   ?back=queue 时「改好了」「不改了，返回」都回待确认屏。 #}
+
+{% set is_english = back is defined and back and back.endswith('-en') %}
+{% block title %}Cairn · {{ 'Edit question' if is_english else '改一下这道题' }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">{{ 'Edit question' if is_english else '改一下这道题' }}</h1>
+
+{% if has_crop %}
+<div class="figure figure--shown">
+  <img src="/questions/{{ question.id }}/crop" alt="{{ 'Original question image' if is_english else '这道题在卷子上的原图' }}">
+</div>
+{% endif %}
+
+{% if edit_error %}<p class="notice notice--danger">{{ edit_error }}</p>{% endif %}
+
+<form method="post" action="/questions/{{ question.id }}/edit{% if back %}?back={{ back }}{% endif %}" class="edit-form">
+  <label class="edit-form__label" for="edit-content">{{ 'Question' if is_english else '题目' }}</label>
+  <textarea class="edit-form__input" id="edit-content" name="content" rows="5" required>{{ keep_form.content if keep_form is defined and keep_form else question.content }}</textarea>
+
+  <label class="edit-form__label" for="edit-answer">{{ 'Answer (optional)' if is_english else '答案（可不填）' }}</label>
+  <textarea class="edit-form__input" id="edit-answer" name="answer" rows="2">{{ keep_form.answer if keep_form is defined and keep_form else (question.answer or '') }}</textarea>
+
+  <label class="edit-form__label" for="edit-analysis">{{ 'Explanation (optional)' if is_english else '讲解（可不填）' }}</label>
+  <textarea class="edit-form__input" id="edit-analysis" name="analysis" rows="4">{{ keep_form.analysis if keep_form is defined and keep_form else (question.analysis or '') }}</textarea>
+
+  <div class="select-actions">
+    <button type="submit" class="btn btn--primary">{{ 'Save changes' if is_english else '改好了' }}</button>
+    <a class="btn--ghost" href="{% if back_url %}{{ back_url }}{% elif back == 'queue' %}/review-queue{% else %}/questions/{{ question.id }}{% endif %}">{{ 'Cancel' if is_english else '不改了，返回' }}</a>
+  </div>
+</form>
+{% endblock %}

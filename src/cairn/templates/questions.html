@@ -1,0 +1,54 @@
+{% extends "_v3.html" %}
+{# 错题本（v3 · E.10）：搜索框首条 + 科目筛选 + 每行「题干摘要 / 错过几次 / 稳不稳」。
+   稳不稳与「最近怎么样」同源谓词（glance_service 口径）。 #}
+
+{% block title %}Cairn 凯恩 · 错题本{% endblock %}
+{% block main_class %} main--wide main--questions{% endblock %}
+
+{% block content %}
+<h1 class="page-title">错题本</h1>
+
+<form method="get" action="/questions" class="search-form">
+  <svg class="search-form__icon" aria-hidden="true"><use href="#i-search"/></svg>
+  <input class="edit-form__input" type="search" name="q" value="{{ keyword }}" placeholder="搜题目里的字">
+  {% if subject %}<input type="hidden" name="subject" value="{{ subject }}">{% endif %}
+</form>
+
+<div class="chip-row">
+  <a class="chip{% if not subject %} is-on{% endif %}" href="/questions{% if keyword %}?q={{ keyword }}{% endif %}">全部</a>
+  {% for name in subjects %}
+  <a class="chip{% if subject == name %} is-on{% endif %}" href="/questions?subject={{ name }}{% if keyword %}&q={{ keyword }}{% endif %}">{{ name }}</a>
+  {% endfor %}
+</div>
+
+{% if rows %}
+<ul class="qlist">
+  {% for row in rows %}
+  <li>
+    <a class="qcard" href="/questions/{{ row.question_id }}">
+      <span class="qcard__stem">{{ row.content }}</span>
+      <span class="qcard__meta">
+        <span class="qcard__subject">{{ row.subject }}</span>
+        <span>错过 {{ row.wrong_count }} 次</span>
+        <span class="qcard__grow"></span>
+        <span class="pill{% if row.repeated %} pill--warn{% endif %}">{% if row.repeated %}还在反复错{% else %}稳{% endif %}</span>
+        <svg class="qcard__chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% elif keyword %}
+<section class="empty">
+  <h1 class="empty__title">没找到带「{{ keyword }}」的题</h1>
+  <p class="empty__text">这里按题目里出现的字来搜。</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/upload">去拍新卷子</a></div>
+</section>
+{% else %}
+<section class="empty">
+  <h1 class="empty__title">还没有收进来的题</h1>
+  <p class="empty__text">拍完卷子、圈出错题、确认过之后，题会存在这里。</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/upload">去拍第一张卷子</a></div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 考试{% endblock %}
+
+{% block main %}
+<h1>考试</h1>
+<p><a href="/practice">去练一题</a></p>
+
+<p class="hint">填一场考试；考前 {{ sprint_days }} 天开始，系统会把考后才到期、{{ sprint_days }} 天内到期的题提前排到考前。不额外加题量。</p>
+
+{% if error %}<p class="notice notice--danger">{{ error }}</p>{% endif %}
+
+<form class="card" method="post" action="/exam">
+  <label class="field">考试名称<input class="input" type="text" name="name" value="{{ form.name if form else '' }}" placeholder="例如：第三单元测验"></label>
+  <label class="field">考试日期<input class="input" type="date" name="exam_date" value="{{ form.exam_date if form else '' }}"></label>
+  <label class="field">学科
+    <select class="input" name="subject">
+      <option value="">全部学科</option>
+      {% for subject in subjects %}
+      <option value="{{ subject }}" {% if form and form.subject == subject %}selected{% endif %}>{{ subject }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="field">备注（考试范围，自己看）<textarea class="textarea" name="note" rows="2" placeholder="例如：第一、二单元，单词 + 课文填空">{{ form.note if form else '' }}</textarea></label>
+  <button type="submit" class="btn btn--primary">保存考试</button>
+</form>
+
+<h2>考试列表</h2>
+{% if view.rows %}
+<table class="table table--scroll">
+  <thead><tr><th>名称</th><th>日期</th><th>学科</th><th>状态</th><th>备注</th><th></th></tr></thead>
+  <tbody>
+    {% for row in view.rows %}
+    <tr>
+      <td>{{ row.name }}</td>
+      <td>{{ row.exam_date }}</td>
+      <td>{{ row.subject or '全部学科' }}</td>
+      <td>
+        {% if not row.active %}<span class="hint">已结束</span>
+        {% elif row.days_left == 0 %}<span class="badge badge--warn">就是今天</span>
+        {% elif row.days_left <= sprint_days %}<span class="badge badge--warn">还有 {{ row.days_left }} 天</span>
+        {% else %}还有 {{ row.days_left }} 天{% endif %}
+      </td>
+      <td>{{ row.note or '' }}</td>
+      <td>
+        <form class="inline-form" method="post" action="/exam/delete">
+          <input type="hidden" name="exam_id" value="{{ row.id }}">
+          <button type="submit" class="btn btn--danger">删除</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="hint">考过的考试不会自动删，留在这里当历史；不想要了再点删除。</p>
+{% else %}
+<p class="empty">还没有考试。填一个日期，系统才知道什么时候该冲刺。</p>
+{% endif %}
+{% endblock %}

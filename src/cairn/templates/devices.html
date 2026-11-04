@@ -1,0 +1,78 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 拍摄{% endblock %}
+
+{% block main %}
+<h1>拍摄</h1>
+
+{% if backend.fallback_reason %}
+<p class="notice notice--warn">降级中：{{ backend.fallback_reason }}。下面是假设备，抓到的图不是真实拍摄。</p>
+{% elif backend.is_fake %}
+<p class="notice notice--warn">当前是假设备（CAIRN_CAMERA_BACKEND=fake）：只验证链路，不接触真实摄像头。</p>
+{% endif %}
+{% if error %}<p class="notice notice--danger">{{ error }}</p>{% endif %}
+
+<p class="hint">高拍仪在 macOS 上就是 UVC 摄像头，这里只读它的能力、不写曝光/对焦。抓一张会存到库目录下的 <code>scans/年/月/</code>。</p>
+
+{% if views %}
+<table class="table table--scroll">
+  <thead>
+    <tr><th>设备</th><th>连接</th><th>额定分辨率</th><th>对焦</th><th>曝光</th><th>白平衡</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for view in views %}
+    <tr>
+      <td>
+        {{ view.device.name }}
+        {% if view.device.model %}<br><span class="hint">{{ view.device.model }}</span>{% endif %}
+      </td>
+      <td>
+        {{ view.device.transport }}
+        {% if view.device.usb_id %}<br><span class="hint">{{ view.device.usb_id }}</span>{% endif %}
+      </td>
+      {% if view.error %}
+      <td colspan="4" class="notice notice--danger">读能力失败：{{ view.error }}</td>
+      {% else %}
+      <td>
+        {% if view.capabilities.best_format %}{{ view.capabilities.best_format.label }}{% else %}未知{% endif %}
+        {% if view.capabilities.formats|length > 1 %}<br><span class="hint">共 {{ view.capabilities.formats|length }} 种</span>{% endif %}
+      </td>
+      <td>{{ mode_labels.get(view.capabilities.focus, view.capabilities.focus) }}</td>
+      <td>{{ mode_labels.get(view.capabilities.exposure, view.capabilities.exposure) }}</td>
+      <td>{{ mode_labels.get(view.capabilities.white_balance, view.capabilities.white_balance) }}</td>
+      {% endif %}
+      <td>
+        {% if not view.error %}
+        <form class="inline-form" method="post" action="/devices/{{ view.device.stable_id|urlencode }}/snapshot">
+          <button type="submit" class="btn">抓一张</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>完整格式与说明</h2>
+{% for view in views if view.capabilities %}
+<details>
+  <summary>{{ view.device.name }}：{{ view.capabilities.formats|length }} 种格式</summary>
+  <ul>
+    {% for fmt in view.capabilities.formats %}
+    <li>{{ fmt.label }} · {{ fmt.pixel_format }}</li>
+    {% endfor %}
+  </ul>
+  {% if view.capabilities.notes %}
+  <ul class="hint">
+    {% for note in view.capabilities.notes %}<li>{{ note }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</details>
+{% endfor %}
+{% else %}
+<p class="empty">
+  没有找到摄像头。插上 UVC 高拍仪后刷新本页；若系统没给权限，去
+  「系统设置 → 隐私与安全性 → 摄像头」把运行 Cairn 的程序打开。
+</p>
+{% endif %}
+{% endblock %}

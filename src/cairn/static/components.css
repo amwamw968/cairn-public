@@ -1,0 +1,1328 @@
+/* components.css —— 外壳组件基类（Phase 0-c 建文件；Phase 1-a 起三页开始引用）。
+ *
+ * 规矩：
+ *   1. 颜色只能 var(--color-*)，本文件 0 个色值字面量（test_components_use_tokens_only）。
+ *   2. margin / padding / gap 只能用 var(--space-*)，零写 0（同一条守卫）。
+ *   3. .btn / .tabbar__item / .list-row 都带 min-height: var(--tap-min)（44px 手指靶，
+ *      test_tap_targets 钉住）。
+ *   4. .icon 只有 18 / 20 / 24 三档（§3.10）。tokens.css 没有图标尺寸令牌，本卡又不许
+ *      改令牌文件，所以这三处是**唯一**写 px 的地方；test_icon_size_classes 把三个数字钉死，
+ *      加第四档就红。
+ *   5. 只写基类，不写任何页面专属样式。
+ */
+
+/* ---------------------------------------------------------------- 页面容器 */
+.page {
+  width: var(--width-full);
+  max-width: var(--content-width);
+  margin-inline: auto;
+  padding-block: var(--space-4) var(--space-8);
+  padding-inline: var(--gutter);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+}
+
+/* ---------------------------------------------------------------- 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-body);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+
+.btn:hover {
+  background: var(--color-bg-subtle);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--color-accent);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.btn--primary {
+  flex: 1 1 100%;
+  min-height: 52px;
+  font-size: var(--text-body);
+  border-color: var(--color-accent-fill);
+  background: var(--color-accent-fill);
+  color: var(--color-on-accent);
+}
+
+/* hover 只压一档透明度，不换底色：--color-accent 是链接色（亮色 #8A5A12 深棕），
+   拿它当底就和墨字一起发暗；而色板没有比 --accent-fill 更深的琥珀
+   （见 tokens.css 里 --color-accent-hover 的注释），所以走 opacity。 */
+.btn--primary:hover {
+  border-color: var(--color-accent-fill);
+  background: var(--color-accent-fill);
+  opacity: 0.92;
+}
+
+/* 次按钮：和主按钮同一行排不完时各占半行，浅底无边框，字重退一档
+   ——「重新检测 / 跳过」是退路，不该和「就用这个」抢眼睛 */
+.btn--quiet {
+  flex: 1 1 calc(50% - 4px);
+  min-height: var(--tap-min);
+  border-color: transparent;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.btn--ghost:hover {
+  background: var(--color-accent-subtle);
+}
+
+.btn--danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-on-accent);
+}
+
+/* ---------------------------------------------------------------- 列表行 */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding-block: var(--space-3);
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-decoration: none;
+}
+
+.list-row:hover {
+  background: var(--color-accent-subtle);
+}
+
+.list-row:last-child {
+  border-block-end: 0;
+}
+
+/* 键盘焦点环：整行可点的 <a>，焦点必须看得见。用 outline 而不是 box-shadow——
+   :hover 会换底色，box-shadow 那种「两层外扩」在行上贴得太近；outline 不参与布局，
+   offset 2px 把环落在行外，不压字也不改变行高。
+   .btn:focus-visible 走 box-shadow 是因为按钮有圆角，两套不要合并。 */
+.list-row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- 徽标 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-caption);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- 底部弹层 */
+.sheet {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  max-block-size: calc(100% - var(--space-7));
+  overflow-y: auto;
+  padding-block: var(--space-5);
+  padding-inline: var(--space-4);
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elev-raised);
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+/* ---------------------------------------------------------------- 底部标签栏 */
+.tabbar {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  /* 五格等分用 grid：flex 的 basis 0 在 <details> 那格上会被自动最小宽顶成 87px，
+     实测四格 103、第五格 87；grid 的 1fr 不看内容宽，五格永远等宽。 */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0;
+  min-height: var(--tabbar-h);
+  /* base.css 给裸 nav 加了下外边距与列间距，吸底条要自己抹掉，否则整条被顶起来。 */
+  margin: 0;
+  padding-block-end: env(safe-area-inset-bottom);
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elev-1);
+}
+
+.tabbar__item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: var(--space-8);
+  min-height: var(--tap-min);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-caption);
+  text-decoration: none;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+
+/* 格与格的竖线：画在格子上而不是 .tabbar__item 上——第五格是 <details>，
+   它不是 .tabbar__item，只给 item 写选择器会漏掉「更多」左边那条。 */
+.tabbar > :not(:first-child) {
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.tabbar__item:hover,
+.tabbar__item:active {
+  background: var(--color-surface);
+}
+
+/* 当前项：顶部 2px 墨条 + 600。横条压在图标上方，和侧栏的竖条是同一套记法。 */
+.tabbar__item[aria-current="page"] {
+  border-block-start: 2px solid var(--color-text);
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+}
+
+/* 拍：五格里唯一填充的一块（§4.1）。32px 圆底 + 24px 图标，显式 border-box，
+   免得有没有 base.css 都拿到不同尺寸。 */
+.tabbar__item--primary .icon {
+  box-sizing: border-box;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  padding: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* ---------------------------------------------------------------- 图标 */
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
+
+.icon--18 {
+  width: 18px;
+  height: 18px;
+}
+
+.icon--20 {
+  width: 20px;
+  height: 20px;
+}
+
+.icon--24 {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---------------------------------------------------------------- 表单字段 */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+/* ---------------------------------------------------------------- 导航 */
+/* 手机（≤ 640px）：底部五格；桌面（≥ 641px）：左侧栏。两个 <nav> 都在 DOM 里，
+   靠断点只显示一个（§4.1）。断点是 px 字面量——CSS 不允许在媒体查询里写 var()；
+   这是本文件除图标三档之外唯一写 px 的地方。 */
+.sidebar {
+  display: none;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding-inline: var(--space-3);
+  color: var(--color-text);
+  font-size: var(--text-value);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-title);
+}
+
+.sidebar__brand img {
+  flex: 0 0 auto;
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  color: var(--color-text);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+}
+
+/* 行间 1px 下边线：像印刷表单里一行一行的表格线，让"能点"这件事有边界。
+   竖条用 inset box-shadow 而不是 border-left——加边框会把文字整体右推 2px，
+   hover 与当前项的字位就对不齐了。 */
+.nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--lh-body);
+  text-decoration: none;
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out);
+}
+
+.nav__item:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.nav__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* 当前项不只换字色：左侧 2px 墨条 + 600 字重，暗色主题下也不会只剩"蓝字"。 */
+.nav__item--active,
+.nav__item[aria-current="page"] {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 2px 0 0 var(--color-text);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+/* 当前项同时拿到焦点时，焦点环和墨条要一起在，别让一条 box-shadow 盖掉另一条。 */
+.nav__item[aria-current="page"]:focus-visible {
+  box-shadow:
+    inset 2px 0 0 var(--color-text),
+    0 0 0 2px var(--color-accent);
+}
+
+/* ---------------------------------------------------------------- 更多面板 */
+/* 「更多」用 <details>/<summary> 展开，零 JS（§4.3 的四组在 _nav.html 里只写一处，
+   侧栏与底栏各渲染一份，两处永远同源）。面板绝对定位：开合不推挤底栏与侧栏。
+   手机从底栏上方展开、桌面从侧栏底部展开。 */
+.more {
+  position: relative;
+  /* base.css 给裸 <details> 加了 margin-top，底栏那一格会被顶高一截（同排另外四项没有） */
+  margin-block-start: 0;
+}
+
+.more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.more > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.more__panel {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-end: 0;
+  gap: var(--space-4);
+  inline-size: min(calc(var(--space-8) * 5), calc(100vw - var(--space-5)));
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elev-raised);
+}
+
+/* `display` 按开合状态给，**不写在上面那条基础规则里**：<details> 关着时浏览器靠
+   UA 样式隐藏非 summary 的子内容，作者样式里任何一条 `display` 都会盖掉它，面板
+   于是在"关着"的时候照样被排版、被读到（本面板是绝对定位，眼下没把文档撑宽，
+   但哪天去掉定位就是整站级溢出）。下面两条是一对：删掉 `display: none` 那条，
+   tests/test_design_system.py::test_more_panel_display_follows_open_state 会红。 */
+.more:not([open]) > .more__panel {
+  display: none;
+}
+
+.more[open] > .more__panel {
+  display: grid;
+}
+
+.more__group {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.more__title {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-caption);
+  line-height: var(--lh-caption);
+}
+
+.more__links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.more__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  text-decoration: none;
+}
+
+.more__link:hover {
+  background: var(--color-accent-subtle);
+}
+
+.more__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* 诊断组排在最后、用次要色（§4.3） */
+.more__group--diagnostic .more__link {
+  color: var(--color-text-tertiary);
+}
+
+/* 底栏里「更多」占一格：<details> 自己就是一格（grid 列），里面的 <summary> 撑满它。
+   summary 复用 .tabbar__item 那一套 flex，这里把居中显式钉一遍，不依赖继承。 */
+.more--tabbar {
+  display: flex;
+}
+
+.more--tabbar > .tabbar__item {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+/* 面板打开时 summary 仍是那一格，居中显式再写一次（卡 V7 第 3 条要求）。 */
+.more--tabbar[open] > summary {
+  justify-content: center;
+}
+
+/* ------------------------------------------------- 字号与留白节奏（D1） */
+/* 一页只该有一个大标题：h1 走 24/32 的 heading 档，字重 600，字距略收一点
+   ——中文大标题的默认字距看着散。间距一律走令牌（守卫不许本文件写字面量）。 */
+.page h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-heading);
+  line-height: var(--lh-heading);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+/* 小节标题：UA 默认 h2 是 700，D3 只许到 600——不钉住就会在详情页冒出第四种字重 */
+.page h2 {
+  font-weight: var(--weight-semibold);
+}
+
+/* 图上方那段说明：14/22、三级色，下面留 24 才不贴着画布 */
+.hint {
+  margin-bottom: var(--space-5);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  line-height: 22px;
+}
+
+/* 页面最底下那段注解：比正文再小一档（12/18），只留上面 12 */
+.hint--foot {
+  margin-block: var(--space-3) 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-caption);
+  line-height: 18px;
+}
+
+/* 提示条：14/20，内边距 12×14。14 没有令牌档，用 12 + 4×0.5 算出来，
+   免得在组件文件里写字面量（test_components_use_tokens_only）。 */
+.notice {
+  padding-block: var(--space-3);
+  padding-inline: calc(var(--space-3) + var(--space-1) * 0.5);
+  font-size: var(--text-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ---------------------------------------------------------------- 裁边确认页 */
+/* 照片 + 四条线 + 四个可拖的角（Phase 2-c）。整块宽度跟着 .page 走，手机上永远
+   不超过一屏：图上不许横向滚动（AC7）。角点的热区是 44px 的 div，探出图片边缘的
+   那半个用 overflow: hidden 裁掉——宁可边缘那颗点小一圈，也不让整页横滚。 */
+.crop-stage,
+.select-stage {
+  position: relative;
+  display: block;
+  width: var(--width-full);
+  max-width: 100%;
+  margin-block: var(--space-5) var(--space-4);
+  overflow: hidden;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  /* 卡 D2b：图片框不许有阴影。令牌亮色是 none、暗色是那一层 --elev-raised，
+     所以这里只写 var()，两个主题各自取值。 */
+  box-shadow: var(--elev-raised);
+}
+
+.crop-stage__image,
+.select-stage__image {
+  display: block;
+  width: var(--width-full);
+  max-width: 100%;
+  block-size: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 四条线画在 canvas 上（不是 DOM 边框）：一个 canvas 比四个旋转的 div 少一半节点 */
+.crop-stage__lines {
+  position: absolute;
+  inset: 0;
+  width: var(--width-full);
+  block-size: 100%;
+  pointer-events: none;
+}
+
+.crop-stage__handles {
+  position: absolute;
+  inset: 0;
+}
+
+/* 热区 44×44，视觉只有中间一个小圆点（§3.10 的靶 / 视觉分离） */
+.crop-handle {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  /* 拖角时不滚动页面、也不 pinch 缩放：单指永远只移动这个角 */
+  touch-action: none;
+}
+
+.crop-handle::after {
+  content: "";
+  display: block;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: var(--radius-full);
+  background: var(--crop-edge-inner);
+  /* 双层描边：1.5px 紧贴的深环（白纸上不糊）+ 一层浅投影（红底上不飘） */
+  box-shadow:
+    0 0 0 1.5px var(--crop-handle-ring),
+    0 2px 6px var(--crop-handle-shadow);
+}
+
+.crop-handle--active {
+  cursor: grabbing;
+}
+
+/* 按下就长大并填成强调色：手指挡住的那一下也能看出"抓到了这个角" */
+.crop-handle--active::after {
+  inline-size: 24px;
+  block-size: 24px;
+  background: var(--color-accent);
+}
+
+/* 没有 JS 时的四角站位（JS 一跑就用行内 left/top 盖掉）：总比四个点叠在左上角强 */
+.crop-handle[data-corner="0"] {
+  inset-block-start: 5%;
+  inset-inline-start: 5%;
+}
+
+.crop-handle[data-corner="1"] {
+  inset-block-start: 5%;
+  inset-inline-start: 95%;
+}
+
+.crop-handle[data-corner="2"] {
+  inset-block-start: 95%;
+  inset-inline-start: 95%;
+}
+
+.crop-handle[data-corner="3"] {
+  inset-block-start: 95%;
+  inset-inline-start: 5%;
+}
+
+/* ------------------------------------------------- 印刷表单 · 卡片 D2b
+ * JS 手册那套控件语法落地：结论两线夹一行（没有圆点、没有底色），数据三列带竖线，
+ * 按钮当表格的行（主按钮整行 2px 墨线 + 箭头），不当色块。值逐字照抄卡面。
+ *
+ * 按钮的选择器收在 .crop-actions 里：这一段是"印刷表单的行"，不是全站按钮的
+ * 新基类——其它页面（15 个模板、30 多个 .btn）仍是上面那套按钮，本卡不改它们。
+ */
+
+/* 结论条：两条细线夹住，没有圆点、没有底色 */
+.verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-block: 0 14px;
+}
+
+.verdict__label {
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 结论行里右边那串机器值。`min-inline-size: 0` + `overflow-wrap: anywhere` 是成对的：
+ * flex 项的 `min-width: auto` 默认取 min-content，机器串（质量指标 JSON、落盘路径、
+ * 设备 ID）没有断点，min-content 就是这个串的整宽，项不肯缩 → 整页被顶出 390 视口。
+ * 换成 `break-word` 不行：它只影响换行，不影响 min-content，仍然撑宽。 */
+.verdict__meta {
+  margin-inline-start: auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+}
+
+/* 同一类串在数据条与结论条里都可能出现（路径、哈希、压缩 JSON）：统一允许任意断点，
+ * 不做省略号截断——家长要能读全，宁可折成两行。 */
+.verdict code,
+.facts code {
+  overflow-wrap: anywhere;
+}
+
+.verdict--warn .verdict__label {
+  color: var(--warn);
+}
+
+.verdict--fail .verdict__label {
+  color: var(--danger);
+}
+
+/* 练习页的考试倒计时条：类名与 sprint 变体照旧（既有测试逐字断言），只把外观从
+ * base.css 的「暖色卡片」收成一条结论条——上下 1px 线、无底色、无圆角。
+ * 冲刺期不是警报，颜色留给 .verdict--warn；这里两侧 padding 归零，才能跟页头对齐。 */
+.page .exam-bar {
+  border: 0;
+  border-block: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: 0;
+  padding-block: var(--space-2);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* 数据条：三列，列间一条竖线（格里的 <p> 抹掉 base.css 的段落下边距） */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-block: 0 16px;
+}
+
+.facts p {
+  margin: 0;
+}
+
+.facts__cell:not(:first-child) {
+  border-inline-start: 1px solid var(--color-border);
+  padding-inline-start: 12px;
+}
+
+.facts__value {
+  font-size: var(--text-value);
+  line-height: 1.3;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts__caption {
+  font-size: var(--text-caption);
+  line-height: 1.35;
+  color: var(--color-text-tertiary);
+}
+
+.facts__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+}
+
+/* 题干：一页里最长的一段字，16/1.7；卷面上的断行照原样留着 */
+.stem {
+  margin-block: 0 var(--space-5);
+  font-size: var(--text-body);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* 图片承托：一条 1px 细线框住裁块，不留内边距、不投影。
+ * img 必须限宽 100%：卷子详情页的原图是 1000px 起的，不限宽就按原尺寸撑破 390 视口。 */
+.figure {
+  margin-block: 0 var(--space-2);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.figure img {
+  display: block;
+  max-width: 100%;
+  block-size: auto;
+}
+
+/* 图下说明：等宽小字，与 .facts__meta 同一档 */
+.figure__cap {
+  margin-block: 0 var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+}
+
+/* 动作区：当表格的行，不当色块（三个按钮各占一行，行间靠 1px 分隔线） */
+.crop-actions,
+.select-actions {
+  margin-block-start: 18px;
+  border-top: 1px solid var(--color-border-strong);
+}
+
+.crop-actions .btn,
+.select-actions .btn {
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: 48px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-label);
+  font-weight: 500;
+  padding: 0 2px;
+  text-align: start;
+  justify-content: flex-start;
+}
+
+.crop-actions .btn--primary,
+.select-actions .btn--primary {
+  min-block-size: 52px;
+  justify-content: space-between;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: var(--text-body);
+  border-bottom: 2px solid var(--color-text);
+}
+
+.crop-actions .btn--primary::after,
+.select-actions .btn--primary::after {
+  content: "→";
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  color: var(--color-accent);
+}
+
+/* 页脚一行等宽小字：走 / 跳过 的去处；圈选页也用它说"什么才算入库" */
+.crop-foot,
+.select-foot {
+  margin-block: var(--space-3) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.02em;
+  color: var(--color-text-tertiary);
+}
+
+/* ------------------------------------------------- 圈选入库页 · 卡片 P3-a
+ * 与裁边页同一套：图在上、框叠在图上、按钮当表格的行。这页只多出一个组件——框：
+ * 虚线=没勾、实线+主色=勾上了，右上角一个 × 删框（44px 热区、12px 视觉）。
+ * 框的 left/top/width/height 由 select-questions.js 按原图坐标换算成百分比写进来，
+ * 模板里只有 data-*，所以这页零内联样式。
+ */
+
+/* 单指在图上永远是画框，不滚页面（与 .crop-handle 同一个取舍） */
+.select-stage {
+  touch-action: none;
+}
+
+.select-stage__boxes {
+  position: absolute;
+  inset: 0;
+}
+
+.select-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* 选中底色用伪元素：框线本身不填色块，压在纸上仍是"印刷表单" */
+.select-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent-fill);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.select-box--on {
+  border-style: solid;
+  border-color: var(--color-accent);
+}
+
+.select-box--on::before {
+  opacity: 0.12;
+}
+
+/* 角标：机器框=题号，人工框=「人工」（11px 等宽、二级色、贴左上） */
+.select-box__no {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  padding-inline: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  pointer-events: none;
+}
+
+/* 热区 44×44、视觉 12px（照 .crop-handle 的靶/视觉分离），压在框的右上角 */
+.select-box__x {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--tap-min);
+  block-size: var(--tap-min);
+  padding: 0;
+  transform: translate(50%, -50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.select-box__x::after {
+  content: "×";
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
+.select-box--on .select-box__x::after {
+  color: var(--color-text);
+}
+
+/* 计数条：两线夹一行，段间一个「·」（把 .facts 的写法收进一行） */
+.counts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-block: 0 var(--space-4);
+}
+
+.counts__cell {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--text-caption);
+  color: var(--color-text-tertiary);
+}
+
+.counts__value {
+  font-size: var(--text-value);
+  line-height: 1.3;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.counts__dot {
+  font-family: var(--font-mono);
+  color: var(--color-border-strong);
+}
+
+/* 汇总格卡：一格一件事，数字在上、标签在下。三格恒一行——三段合计约 250，
+   390 减去左右 gutter 还剩 358，窄屏也不折行（V1.5）。
+   格间竖线照 .facts 的做法（第二、三格左边一条 1px），不加底色、不加圆角与阴影。 */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-block: 0 var(--space-4);
+}
+
+.summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.summary__item:not(:first-child) {
+  border-inline-start: 1px solid var(--color-border);
+  padding-inline-start: var(--space-3);
+}
+
+.summary__value {
+  font-size: var(--text-value);
+  line-height: 1.3;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* 标签：11 等宽三级色，与 .list-row__meta / .facts__meta 同一档 */
+.summary__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: var(--lh-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* 次按钮并排各占半行（主按钮已由 .select-actions .btn 定成整行） */
+.select-actions__row {
+  display: flex;
+}
+
+.select-actions__row .btn {
+  flex: 1;
+}
+
+/* 行内三键（V5 复核队列）：看原图 / 确认 / 驳回 并排，间隔 12，键高 48。
+   宽度取「三个等宽」这一种（卡面允许 1/4 + 1/2 + 1/4，这里不选：390 上正文宽
+   326，扣掉两个 12 间隔后每键 100.67，「看原图」三个字 42 + 左右 padding 32 = 74
+   放得下；反过来 1/4 只有 75.5，贴着 padding 走，稍微换字就换行）。
+   宽度摊在 form 上、按钮再吃满 form；`看原图` 是直挂的 <a>，见下面那条。
+   `.btn--primary` 的基础规则是 flex: 1 1 100% + 52 高（手机整行用），进了这条
+   横向 flex 就得收回来；48 借用 --space-7（就是 48px），不写字面量。 */
+.row-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-block: var(--space-3) var(--space-5);
+}
+
+.row-actions .inline-form {
+  display: flex;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+/* 直挂的那一个（`看原图` 链接，没被 form 包着）：它自己就是 flex 项，而
+   `flex-basis: 0` 在链接上会把 padding + border 留在份额之外——390 实测过
+   123.33 / 89.33 / 89.33，中间两键被挤窄。这里把横向 padding 与边框让掉，
+   三等分才是 100.67；点击面积不缩水，flex 已经把它撑满一格。 */
+.row-actions > .btn {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  padding-inline: 0;
+  border-inline-width: 0;
+}
+
+/* margin 清零：base.css 的 `form .btn` 给了 8px margin-top，会让链接比按钮高出一截 */
+.row-actions .btn {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  min-height: var(--space-7);
+  margin: 0;
+  font-size: var(--text-label);
+}
+
+/* 空态一句话：一张都没切出来时，图上直接开始圈 */
+.select-empty {
+  margin-block: var(--space-3) 0;
+  font-size: var(--text-label);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ------------------------------------------------------- 页面层（V1）
+ * 「已拍的卷子」是第一页改到页面层的页面，下面这几条是后面 11 页共用的骨架：
+ *   页头 .page-head（+ __text / __actions，kicker / lede 是页头里的两行）
+ *   区块 .section（+ __title，标题左边、计数右边）
+ *   列表行 .list-row 的三个子件（__main / __meta / __step）与缩略图 .thumb
+ *   状态块 .state（空 / 加载 / 出错三态共用，只差一处颜色）
+ * 规矩照旧：色值只用 var(--color-*)，间距只用 var(--space-*)，字号只认六档。
+ */
+
+/* 状态块：一屏什么内容都没有时，只回答三件事——发生了什么、还能走哪条路、现在点哪儿。
+   竖直排：标题 16/600 → 说明 14/400 二级色 → 动作行；上下各留 32，无底色、无描边、
+   无圆角（要像「这一页还没开始」，不像一张卡片）。
+   三态只差一处颜色：--error 换标题、--loading 换说明，其余骨架完全一样。 */
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block: var(--space-6);
+  margin-block: 0;
+}
+
+.state__title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.state__detail {
+  margin: 0;
+  font-size: var(--text-label);
+  font-weight: var(--weight-regular);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* 动作行：竖排，多个出口时各占一行；主按钮自己带整行 52 高（.btn--primary） */
+.state__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.state--error .state__title {
+  color: var(--color-danger);
+}
+
+.state--loading .state__detail {
+  color: var(--color-text-tertiary);
+}
+
+/* 页头：底下一根 1px 线把页头与页体分开，靠留白分层，不加底色、不加圆角。
+   手机（≤ 640）先竖排：__text 与 __actions 各占整行，主按钮就是整行 52 高；
+   桌面（≥ 641）在文件末尾那条媒体查询里折回同一行、按钮收成 44。 */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  margin-block-end: var(--space-5);
+}
+
+.page-head__text {
+  min-inline-size: 0;
+  inline-size: 100%;
+}
+
+/* kicker：位置标识（域 · 页），不是句子。等宽 11，落在 h1 上方。 */
+.kicker {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0.02em;
+  line-height: var(--lh-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* lede：一句话说清顺序与对象，最多两行；宽度跟题干的量（--width-prose）。 */
+.lede {
+  margin: 0;
+  max-inline-size: var(--width-prose);
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--lh-body);
+  color: var(--color-text-secondary);
+}
+
+.page-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+}
+
+/* 区块：只用「小标题 + 上下留白」分开，不加卡片、不加左侧色条。相邻两块 32，
+   紧跟页头的第一块收成 24（页头自己已经留了 24）。 */
+.section {
+  margin-block-start: var(--space-6);
+}
+
+.page-head + .section {
+  margin-block-start: var(--space-5);
+}
+
+.section__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  line-height: var(--lh-sm);
+  letter-spacing: 0.01em;
+  color: var(--color-text);
+}
+
+/* 标题右侧那一个数（`12 张`）：11 等宽、退到三级色，不跟标题抢。 */
+.section__title > span {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+/* 列表本体：行与行之间只靠 .list-row 的 1px 下边线，不要 ul 的缩进与项目符号。 */
+.section > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 行内脚注：11 等宽一行，只说明下一页在哪，不放动作。 */
+.section .hint--foot {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: var(--lh-caption);
+}
+
+/* components.css 的 .list-row 是「手机列表项」：自带底色与左右内边距，排在页头
+   下方会像一张张卡片。页面层把这两处收掉——行就是行，左右与页头对齐。
+   下边线要在这里重新写一遍：基类的 `.list-row:last-child` 会把线去掉，而行式列表里
+   每个 .list-row 都是自己 <li> 的 last-child，不写回来就一根线都不剩。 */
+.page .list-row {
+  background: transparent;
+  padding-inline: 0;
+  border-block-end: 1px solid var(--color-border);
+}
+
+/* 最后一行不封口（页脚那行脚注自己会把底边收住）。 */
+.section > ul > li:last-child .list-row {
+  border-block-end: 0;
+}
+
+/* 中列：时间一行 16/400，下面紧跟一行设备 · 分辨率。min-inline-size: 0 让
+   长设备名在 390 上折行而不是把整行顶宽。 */
+.list-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--lh-body);
+  color: var(--color-text);
+}
+
+.list-row__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  line-height: var(--lh-caption);
+  color: var(--color-text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* 右列：待裁边 / 待选题 / 已入库 N。固定最小宽度，三行状态文字才对得齐右边缘。 */
+.list-row__step {
+  flex: 0 0 auto;
+  min-inline-size: var(--space-8);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-regular);
+  line-height: var(--lh-caption);
+  color: var(--color-text-tertiary);
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* 缩略图：56 见方、1px 描边、圆角 4（控件档）。object-fit 保证长图不被拉扁。
+   base.css 的 .thumb 是 120 宽的旧口径，这里按行式列表重写。 */
+.thumb {
+  flex: 0 0 auto;
+  inline-size: 56px;
+  block-size: 56px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+@media (min-width: 641px) {
+  /* base.css 把 body 收成 860px 居中，这里交还给外壳：整幅宽度、左侧让出侧栏，
+     正文列仍由 .page 自己居中。抬一级写成 html body：base.css 现在在 _base.html 的 head 里、
+     排在本文件之前，不靠加载顺序取胜：同权重的 body 规则谁先谁后都盖不住对方。 */
+  html body {
+    max-width: none;
+    margin: 0;
+    padding-inline: var(--rail) 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    inline-size: var(--rail);
+    margin: 0;
+    padding-block: var(--space-4);
+    padding-inline: var(--space-3);
+    border-inline-end: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .mobile-brand {
+    display: none;
+  }
+
+  /* 「更多」压在侧栏底部（§4.1 的线框图），面板贴着侧栏宽度展开 */
+  .more--rail {
+    margin-block-start: auto;
+  }
+
+  /* 从侧栏底部展开的浮层：比栏宽一点（240 + 32），两列链接才不折行 */
+  .more--rail .more__panel {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    inline-size: calc(var(--rail) + var(--space-6));
+  }
+
+  .tabbar {
+    display: none;
+  }
+}
+
+@media (min-width: 641px) {
+  /* 桌面页头折回一行：文字列吃满剩余宽度，动作区按内容宽贴右。
+     .btn--primary 在基础规则里是 flex: 1 1 100%（手机整行用的），
+     进到横向 flex 里会抢满整行，必须在这里收回来。 */
+  .page-head__text {
+    flex: 1 1 auto;
+    inline-size: auto;
+  }
+
+  .page-head__actions {
+    flex: 0 0 auto;
+    inline-size: auto;
+  }
+
+  .page-head__actions .btn {
+    flex: 0 0 auto;
+  }
+
+  .page-head__actions .btn--primary {
+    min-block-size: var(--tap-min);
+    font-size: var(--text-label);
+  }
+}
+
+@media (min-width: 900px) {
+  /* 桌面读数栏：1160 是**设计尺寸**（版心宽度），不是间距，所以刻意写字面量、不换令牌。
+     --content-width 的 860 是手机/窄屏基线，不动；900 以下继续走那条窄版。
+     同优先级后写，覆盖上面基础规则里的 max-width。 */
+  .page {
+    max-width: 1160px;
+  }
+}

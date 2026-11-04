@@ -1,0 +1,15 @@
+# 扫一页卷子：找到纸边摆正（上传时已做）→ 裁到纸 → 切成题 → 认字。
+#
+# 「裁切」在上传时已经干完（`scan_service.save_upload`，裁完的图就是 `scan.path`
+# 指向的那张），这一步照实念上传时的判定：裁了、跳过了、还是纸太满不用裁。
+#
+# 顺序就是页面上那行痕迹的顺序。on_error 只能是 keep / skip / ask：
+#   keep 保持原样继续 / skip 这步先不做 / ask 把原因交给界面提示家长
+# 改完这份文件要清缓存（测试里 clear_cache()；线上重启即可）。
+name: scan-entry
+title: 扫一页卷子并切成题
+steps:
+  - {name: 摆正, tool: preprocess, on_error: keep}
+  - {name: 裁切, tool: crop,       on_error: keep}
+  - {name: 切题, tool: cut,        on_error: ask}
+  - {name: 认字, tool: ocr,        on_error: ask}

@@ -1,0 +1,83 @@
+Cairn · NOTICE
+==============
+
+本仓库的部分设计参考了第三方开源项目 esp32-voice-entry（MIT 许可）。
+该仓库是独立项目，Cairn 不改动它任何文件；需要的东西抄进 Cairn，各走各的。
+
+上游项目
+--------
+
+  项目：esp32-voice-entry
+  许可：MIT
+  版权：Copyright (c) 2026 esp32-voice-entry contributors
+  评估基线：commit ee8559bdcb1ac5586374f6cec26706be087c4cc6（2026-10-30）
+
+本仓库 M1（语音骨架 · 文本回合）参考了什么
+-------------------------------------------
+
+M1 **没有逐字复制上游任何源文件**。参考的是「做法与结构」，落点为
+`src/cairn/voice/`（router.py / turn.py / cli.py）：
+
+1. **一句话先分流再动手**：闲聊走直连应答、出题/判分/进度必须走工具链。
+   Cairn 把这条收敛成规则（关键词 + 「上一轮在等作答」状态），不调大模型做分类
+   —— 见 `src/cairn/voice/router.py`。
+2. **一轮的两种产物**：念给孩子的话 与 给模型的约束，必须是两份、分开传递。
+   上游是「文本回给人、约束回给模型」的同一思路；Cairn 落在
+   `Turn.spoken` / `Turn.next_step`，与 `cairn.mcp_server` 的
+   `content[0].text` / `structuredContent.next_step` 一一对应 —— 见 `src/cairn/voice/turn.py`。
+3. **参数清单（M1 只记录，未启用）**：上游真机标定过的
+   打断阈值 `barge_rms=0.008`、静音 hangover `0.5s`、气声门限 `85`、
+   唤醒同音变体表、TTS 三层回落（云 → 备云 → 本地）。
+   这些属于 M2（麦克风）/ M3（ESP32 板）的摘录范围，届时按上面第 1 条的同样口径
+   标注出处；M1 代码里没有任何音频参数。
+4. **不抄**：上游与 Hermes 的耦合、主动性调度、UI 那一套。
+
+上述参数与结论基于 2026-10-31 的代码级评估。
+
+本仓库 M3a（语音 · 小智固件协议接入）参考了什么
+------------------------------------------------
+
+M3a 的落点是 `src/cairn/voice/xiaozhi/`。**只抄「协议形状」，不抄实现**：
+
+1. **OTA 响应形状**：`src/ota.py` 里 `{"websocket": {"url", "token", "version"},
+   "server_time": {"timestamp", "timezone_offset"}}` 这份 JSON 结构，以及
+   「不回 `firmware` 段就等于不升级」这个判断。Cairn 的 `ota.py` 自己写，
+   不依赖 aiohttp，也没有上游的 Bearer 门禁。
+2. **WS 消息形状**：`src/protocol.py` 里 `hello` / `tts(start|sentence_start|stop)`
+   的字段名与 `audio_params`（opus / 16000 / 1 声道 / 60ms），落在
+   `src/cairn/voice/xiaozhi/ws.py`。字段名一个不改——固件是照着这些名字解析的。
+3. **`GET /debug/mute` 响应形状**（M3a-fix 补的）：字段名照
+   `src/vision.py`（`debug_mute_get`，外层 `ok` + `status()` + `catchup`）与
+   `src/mute.py`（`MuteState.status()` 的键、`MODE` / `MODE_NOTE` 原文）。
+   Cairn 只实现**只读**这一半：没有开关、不落盘、不接主动播报队列，
+   `src/mute.py` 的持久化与计数器逻辑一行没抄。
+4. **没抄**：`src/session.py` 的回合状态机（VAD / ASR / LLM / 句子流式合成 /
+   打断），以及它的 numpy、音频、主动调度那一整条业务。M3a 只证明通道通，
+   固定回一句中文。
+5. **线协议是自己写的**：上游用 aiohttp 自带的 WS；Cairn 的依赖里没有 WS 后端，
+   为了不引入新依赖，用标准库实现了 RFC 6455 的子集（见 `wire.py` 顶部注释）。
+
+MIT 许可全文
+------------
+
+MIT License
+
+Copyright (c) 2026 esp32-voice-entry contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

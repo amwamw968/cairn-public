@@ -1,0 +1,98 @@
+{% extends "_v3.html" %}
+{# 正在读题（v3 · 蓝图 E.5）：机器把这一页的题读出来给家长看。
+   路由 GET /scans/{id}/ocr 同步现算（语义不动）；「通常 10-30 秒」说的是那次等待。
+   30 秒 / 90 秒两条退路（B.4）是前端计时：超时才露出「重试」「跳过这道」。
+   全页没有主按钮——读完的去向是「待你确认」。 #}
+
+{% block title %}Cairn 凯恩 · 正在读题{% endblock %}
+
+{% block content %}
+<h1 class="page-title">正在读题</h1>
+
+<div class="reading-card">
+  <p class="reading-card__step">正在读第 <span id="reading-step">{{ (questions|length) if questions else 1 }}</span>/{{ (questions|length) if questions else 1 }} 道</p>
+  <p class="hint--foot">通常 10-30 秒</p>
+  <p class="reading-card__links">
+    <a class="btn--ghost" id="reading-slow" href="/scans/{{ scan.id }}/ocr" hidden>有点慢，点这里重试这道题</a>
+    <a class="btn--ghost" id="reading-skip" href="/review-queue" hidden>这道题先跳过，稍后在『待你确认』里找它</a>
+  </p>
+</div>
+
+{% if error %}
+<p class="notice notice--danger">没读出来：{{ error }}</p>
+{% endif %}
+
+{% if angle is not none %}
+<p class="notice">
+  {% if angle %}照片歪了 {{ angle }}°，已经帮你转正了。{% else %}照片方向没问题，不用转。{% endif %}
+</p>
+{% endif %}
+
+{% if questions %}
+<section class="section">
+  <span class="section__title">读出了 {{ questions | length }} 道题</span>
+  <ul>
+    {% for q in questions %}
+    <li>
+      <div class="list-row">
+        <span class="list-row__main">第 {{ q.no }} 题 · {{ q.stem }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<div class="stack">
+  <a class="btn btn--secondary" href="/review-queue">去确认读得对不对</a>
+</div>
+
+{% if rows %}
+<details class="trace">
+  <summary class="btn--ghost">这次是怎么读的（逐行明细）</summary>
+  <section class="section">
+    <span class="section__title">读出的每一行</span>
+    <ul>
+      {% for row in rows %}
+      <li>
+        <div class="list-row">
+          <span class="list-row__main">{{ row.text }}</span>
+          <span class="list-row__meta">{{ (row.lines | map(attribute='confidence') | min * 100) | round(0) | int }}%</span>
+        </div>
+        <p class="hint--foot">
+          {% for line in row.lines %}<code>{{ line.text }}: {{ line.box }}</code>{% if not loop.last %} · {% endif %}{% endfor %}
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% if questions %}
+  <p class="hint--foot">{% for q in questions %}第 {{ q.no }} 题 · 框 {{ q.bbox }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  {% endif %}
+</details>
+{% endif %}
+
+{% if trace %}
+<details class="trace">
+  <summary class="btn--ghost">这次用的读题配方</summary>
+  <p class="hint--foot">配方：{{ trace }}</p>
+</details>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// B.4 两条退路的计时：30 秒露「重试」、90 秒露「跳过这道」。测试可直接调
+// window.readingShowSlow / readingShowSkip 验条件，不用干等。
+(function () {
+  var slow = document.getElementById('reading-slow');
+  var skip = document.getElementById('reading-skip');
+  function showSlow() { if (slow) { slow.hidden = false; } }
+  function showSkip() { if (skip) { skip.hidden = false; } }
+  window.readingShowSlow = showSlow;
+  window.readingShowSkip = showSkip;
+  setTimeout(showSlow, 30000);
+  setTimeout(showSkip, 90000);
+})();
+</script>
+{% endblock %}

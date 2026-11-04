@@ -1,0 +1,340 @@
+/* tokens.css —— 全站唯一一份设计令牌（颜色 / 字号 / 行高 / 间距 / 圆角 / 阴影 / 动效 / 层级）。
+ *
+ * 规矩（后面的卡照着来）：
+ *   1. 这是**唯一**允许写死色值的文件。base.css 和模板只能引用 var(--x)。
+ *   2. 想加一个新颜色，先在这里加变量，不要在别处写 #rrggbb。
+ *   3. 全离线：不引外链字体、不引 CDN，字体只用系统自带栈（NAS 断网也要能看）。
+ *   4. 双主题只有**一套名字**：下面 21 个语义令牌在四处各写一遍
+ *      （:root 亮 / @media 暗 / [data-theme="dark"] / [data-theme="light"]），
+ *      组件和模板一个字都不用改。手动手动覆盖块放在媒体查询**之后**，
+ *      同一特异度下后者胜出，所以 data-theme 永远压过系统偏好。
+ *   5. 同一个名字在**同一个块里**只定义一次（guards 在 tests/test_design_system.py）；
+ *      跨主题块重定义是唯一例外，四处必须写同一批名字。
+ *   6. 旧名字（v1 的 52 个）一个都不删：值改成本主题新色板的别名，
+ *      等 Phase 6 再连同旧用法一起退役（§12.1「Compatibility」）。
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ==================================================================
+   * 主题色板 · 亮（方格纸）
+   * 亮值是唯一的真值来源；暗值见下面三个覆盖块。
+   * ================================================================ */
+  --bg: #F2F1EC; /* 页面底：方格纸 */
+  --surface: #FAF9F5; /* 卡片、输入框、面板 */
+  --surface-raised: #FFFFFF; /* 浮层、下拉：唯一比纸更亮的一层 */
+  --border: #D9D6CC; /* 默认 1px 分隔线 */
+  --border-strong: #8C8779; /* 输入框描边 */
+  --text: #1C1A17; /* 正文 */
+  --text-secondary: #55524A; /* 元信息 */
+  --text-tertiary: #6E6A60; /* 时间戳、次要说明 */
+  --accent: #8A5A12; /* 链接、选中态：暗琥珀字色 */
+  --accent-fill: #E9B44C; /* 主按钮 / 选中块的填色 */
+  --accent-on: #1C1A17; /* 填色上的字（琥珀底配深字） */
+  --ok: #1F6B45;
+  --ok-weak: #E4EFE7;
+  --ok-border: #A8C9B6;
+  --warn: #8A5000;
+  --warn-weak: #FBF0D6;
+  --warn-border: #D9BE86;
+  --danger: #A32E22;
+  --danger-weak: #FBE6E3;
+  --danger-border: #E0AEA6;
+  --focus: #8A5A12; /* 焦点环 */
+
+  /* ---- 几何（两个模式相同，所以只在 :root 里写一次） ----------------- */
+  --radius-control: 4px; /* 控件圆角 */
+  --radius-surface: 8px; /* 面板圆角；描边永远 1px */
+
+  /* ==================================================================
+   * v2 · 调色板层（§3.1 Neutral palette）
+   * P0-a 的过渡层：语义层已改指上面的主题色板，这一层不再被任何
+   * 声明消费，名字先留着（Phase 6 统一清理），不要在新代码里引用。
+   * ================================================================ */
+  --p-white: #ffffff;
+  --p-gray-50: #f7f8f9;
+  --p-gray-100: #eef0f2;
+  --p-gray-200: #e6e8eb;
+  --p-gray-300: #d3d8dd;
+  --p-gray-400: #a7aeb6; /* 2.3:1，只许做描边，不许当图标或文字 */
+  --p-gray-500: #6e7681;
+  --p-gray-600: #5b636d;
+  --p-gray-700: #333a42;
+  --p-gray-800: #1e242a;
+  --p-gray-900: #16191d;
+
+  --p-ink-950: #0b0d0f;
+  --p-ink-900: #101315;
+  --p-ink-850: #171a1d;
+  --p-ink-800: #1e2226;
+  --p-ink-700: #2a2f34;
+  --p-ink-600: #3a4046;
+  --p-ink-400: #7c848d;
+  --p-ink-300: #a2aab3;
+  --p-ink-100: #e9ecef;
+
+  /* ==================================================================
+   * v2 · 语义层（§3.1 Semantic tokens）
+   * 组件只认这一层。值全部落在主题色板上，所以换主题时自动跟着变。
+   * ================================================================ */
+  --color-bg: var(--bg); /* 页面底 */
+  --color-bg-subtle: var(--surface); /* 分组区、吸顶条 */
+  --color-surface: var(--surface); /* 卡片、输入框、面板 */
+  --color-surface-raised: var(--surface-raised); /* 浮层、下拉 */
+  --color-border: var(--border); /* 默认 1px 分隔线 */
+  --color-border-strong: var(--border-strong); /* 输入框描边 */
+  --color-text: var(--text); /* 正文 */
+  --color-text-secondary: var(--text-secondary); /* 元信息 */
+  --color-text-tertiary: var(--text-tertiary); /* 时间戳、次要说明 */
+  --color-text-inverse: var(--bg); /* 深底上的字：跟着底色反向 */
+
+  --color-accent: var(--accent); /* 链接、选中态 */
+  --color-accent-fill: var(--accent-fill); /* 主按钮 / 选中块的填色 */
+  --color-accent-hover: var(--accent); /* 色板没有更深的琥珀，按下靠 --dur 与透明度 */
+  --color-accent-subtle: var(--warn-weak); /* 选中行、浅色提示（琥珀同族浅底） */
+  --color-accent-border: var(--warn-border);
+  --color-on-accent: var(--accent-on); /* 主按钮上的字 */
+
+  --color-success: var(--ok);
+  --color-success-subtle: var(--ok-weak);
+  --color-warning: var(--warn);
+  --color-warning-subtle: var(--warn-weak);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-weak);
+
+  --color-overlay: rgba(22, 25, 29, 0.48); /* 遮罩 */
+
+  /* ---- v1 中性灰阶 6 档（名字保留，值改指主题色板） ------------------ */
+  --gray-50: var(--bg);
+  --gray-100: var(--border);
+  --gray-300: var(--border-strong);
+  --gray-500: var(--text-tertiary);
+  --gray-700: var(--text-secondary);
+  --gray-900: var(--text);
+
+  /* 纸面白（不属于灰阶：它是"卡片底色"这个语义） */
+  --white: var(--surface-raised);
+
+  /* ---- v1 强调色 3 个（--accent 与状态色已在上面的色板里） ----------- */
+  --accent-strong: var(--accent); /* hover / 按下 */
+  --accent-weak: var(--warn-weak); /* 浅底（notice--info、选中行） */
+  --accent-border: var(--warn-border);
+
+  /* 深色底上的字（按钮 primary / danger） */
+  --on-accent: var(--accent-on);
+
+  /* ---- v1 语义别名（组件只认这一层，换肤时只改这里；旧名保留） -------- */
+  --surface-muted: var(--surface);
+  --text-muted: var(--text-secondary);
+  --focus-ring: var(--focus);
+
+  /* ---- 字体：只用系统栈，零网络请求 ---------------------------------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New",
+    monospace;
+
+  /* ---- 字号 · v2（§3.2）：六档，没有第七档（卡 D3） ------------------
+   * 11 / 12 / 14 / 16 / 20 / 28。components.css 与模板里的 font-size 只许
+   * 引用这六个名字（tests/test_design_system.py::test_only_six_font_sizes 钉住）；
+   * 想加第七档，先改这张表，再加一条测试。 */
+  --text-meta: 11px; /* 等宽小字：自动 · 0.31s、机器、人工 */
+  --text-caption: 12px; /* 说明与分母：纸占整张照片、低于25判分不开 */
+  --text-label: 14px; /* 次按钮、字段名、标签 */
+  --text-body: 16px; /* 正文、主按钮、结论行（输入框永不低于 16px，iOS 会放大） */
+  --text-value: 20px; /* 数据条的数字（等宽数字，tabular-nums） */
+  --text-display: 28px; /* 页面标题（h1，600，字距 -0.02em） */
+
+  /* ---- 旧字号名：一个都不删，值全部指向上面六档（不许另起一档） ------ */
+  --text-xs: var(--text-caption); /* v1 12 */
+  --text-sm: var(--text-label); /* v1 14 */
+  --text-base: var(--text-body); /* v1 16 */
+  --text-lg: var(--text-value); /* v1 20 */
+  --text-xl: var(--text-display); /* v1 26 → 28，收进 display */
+  --text-title: var(--text-value); /* v2 旧名 20 → value */
+  --text-heading: var(--text-display); /* v2 旧名 24 → 28，收进 display */
+
+  /* ---- v1 行高 2 档 -------------------------------------------------- */
+  --leading-tight: 1.25;
+  --leading-normal: 1.6;
+
+  /* ---- 行高 · v2（与上面六档一一配对） ------------------------------- */
+  --lh-caption: 16px;
+  --lh-sm: 20px;
+  --lh-body: 24px;
+  --lh-title: 28px;
+  --lh-heading: 32px;
+  --lh-display: 40px;
+
+  /* ---- 字重 · v2（没有 700） ---------------------------------------- */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* ---- 间距 8 档（4 的倍数；1–6 是 v1 原值，7–8 是 v2 新增） --------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ---- 圆角 5 档（xs / full 是 v2 新名；sm / md / lg 仍是 v1 原值） --- */
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* ---- 阴影（颜色也走变量，别在阴影里写死 rgba；v1 原样保留） -------- */
+  --shadow-color: rgba(26, 34, 43, 0.12);
+  --shadow-1: 0 1px 2px var(--shadow-color);
+  --shadow-2: 0 4px 16px var(--shadow-color);
+
+  /* ---- 高程 · v2（§3.6 / 卡 D2b：亮色一律无阴影，靠描边与留白分层） ---
+   * 只有 surface-raised（浮层 / 弹层 / 下拉）能用 --elev-raised。
+   * 亮色它是 none；暗色在下面三个块里各给一层 0 8px 24px。
+   * 按钮、卡片、图片框一律不用阴影（components.css 里不许再写 var(--elev-1/2)）。 */
+  --elev-0: none;
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: none;
+  --elev-raised: none;
+
+  /* ---- 动效 · v2（§3.7，最长 240ms；只动 transform 与 opacity） ------ */
+  --dur-1: 120ms; /* 颜色、透明度 */
+  --dur-2: 180ms; /* 按压、勾选 */
+  --dur-3: 240ms; /* 弹层进出、整页淡入 */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1); /* 进场 */
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* 原地状态切换 */
+
+  /* ---- 版式 · v2（§3.4） -------------------------------------------- */
+  --width-prose: 680px; /* 题干、说明文字 */
+  --width-form: 560px; /* 单列表单 */
+  --width-table: 1040px; /* 数据表 */
+  --width-full: 100%; /* 图片画布，上限见 --content-width */
+
+  /* ---- 外壳尺寸 · v2（§3.4；响应式取值由 Phase 5 的媒体查询接管） ---- */
+  --gutter: 16px; /* 手机；600 起 24、900 起 32 */
+  --rail: 240px; /* 桌面侧栏展开，收起 64 */
+  --tabbar-h: 56px; /* 手机底部标签栏（另加安全区） */
+  --actionbar-h: 64px; /* 吸底主操作条（另加安全区） */
+  --header-h: 56px; /* 手机页头；桌面 64 */
+
+  /* ---- 交互尺寸 ------------------------------------------------------ */
+  --tap-min: 44px; /* 可点元素最小边：手指按得准 */
+  --content-width: 860px;
+
+  /* ---- 裁边确认页（D1：把纸框起来） ----------------------------------
+   * 只给 crop-confirm.js / .crop-stage 一带用：遮罩要盖住框外、纸面保持全亮，
+   * 框线要红底和白纸上都看得见，所以边线是"深描边打底 + 白线压上"两层。
+   * canvas 里只能 token('--x') 取色，JS 里不许写 rgba。
+   * ------------------------------------------------------------------ */
+  --crop-scrim: rgba(16, 20, 24, 0.55); /* 框外那层暗 */
+  --crop-edge-halo: rgba(0, 0, 0, 0.30); /* 框线外层：白纸上的深底 */
+  --crop-edge-inner: #ffffff; /* 框线内层：红底上的白线 */
+  --crop-handle-ring: rgba(0, 0, 0, 0.25); /* 角点第一层描边 */
+  --crop-handle-shadow: rgba(16, 20, 24, 0.35); /* 角点投影 */
+  --crop-bracket-size: 24px; /* 四角 L 形角标的臂长 */
+}
+
+/* ====================================================================
+ * 主题色板 · 暗（夜读）：系统偏好
+ * 与 :root 同一批名字、同一特异度，写在后面所以默认胜出。
+ * ================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg: #14120F;
+    --surface: #1C1A16;
+    --surface-raised: #26231D;
+    --border: #332F27;
+    --border-strong: #6B6455;
+    --text: #EDE9E0;
+    --text-secondary: #B0AA9C;
+    --text-tertiary: #948E80;
+    --accent: #E9B44C;
+    --accent-fill: #D08C3A;
+    --accent-on: #1C1A17;
+    --ok: #6FBF8E;
+    --ok-weak: #15291C;
+    --ok-border: #2E5C3E;
+    --warn: #E0A040;
+    --warn-weak: #2B1F0C;
+    --warn-border: #5C4416;
+    --danger: #F07A66;
+    --danger-weak: #2B1613;
+    --danger-border: #5C2B22;
+    --focus: #E9B44C;
+
+    /* 暗色唯一的一层阴影：只给 surface-raised（浮层 / 弹层 / 下拉） */
+    --elev-raised: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* ====================================================================
+ * 主题色板 · 手动覆盖（顺序在媒体查询之后：同特异度、后者胜出）
+ *   [data-theme="dark"]  暗色系统 / 亮色系统都变暗
+ *   [data-theme="light"] 反过来，暗色系统里也能强制亮色
+ * ================================================================== */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #14120F;
+  --surface: #1C1A16;
+  --surface-raised: #26231D;
+  --border: #332F27;
+  --border-strong: #6B6455;
+  --text: #EDE9E0;
+  --text-secondary: #B0AA9C;
+  --text-tertiary: #948E80;
+  --accent: #E9B44C;
+  --accent-fill: #D08C3A;
+  --accent-on: #1C1A17;
+  --ok: #6FBF8E;
+  --ok-weak: #15291C;
+  --ok-border: #2E5C3E;
+  --warn: #E0A040;
+  --warn-weak: #2B1F0C;
+  --warn-border: #5C4416;
+  --danger: #F07A66;
+  --danger-weak: #2B1613;
+  --danger-border: #5C2B22;
+  --focus: #E9B44C;
+
+  /* 暗色唯一的一层阴影：只给 surface-raised（浮层 / 弹层 / 下拉） */
+  --elev-raised: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #F2F1EC;
+  --surface: #FAF9F5;
+  --surface-raised: #FFFFFF;
+  --border: #D9D6CC;
+  --border-strong: #8C8779;
+  --text: #1C1A17;
+  --text-secondary: #55524A;
+  --text-tertiary: #6E6A60;
+  --accent: #8A5A12;
+  --accent-fill: #E9B44C;
+  --accent-on: #1C1A17;
+  --ok: #1F6B45;
+  --ok-weak: #E4EFE7;
+  --ok-border: #A8C9B6;
+  --warn: #8A5000;
+  --warn-weak: #FBF0D6;
+  --warn-border: #D9BE86;
+  --danger: #A32E22;
+  --danger-weak: #FBE6E3;
+  --danger-border: #E0AEA6;
+  --focus: #8A5A12;
+
+  /* 亮色一律无阴影（与 :root 同值，写在手动覆盖块里才不会漏到暗色系统） */
+  --elev-raised: none;
+}

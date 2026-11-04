@@ -1,0 +1,94 @@
+{% extends "_v3.html" %}
+{# 看看读得对不对（v3 · 蓝图 E.6）：一屏一题，先看原图，再决定收不收。
+   两个 POST 表单（/review-queue/confirm、/review-queue/reject）的 action 与
+   字段名（item_id）逐字不动；「读得对」303 回本页，下一道自然升上来。
+   「这道不收」用 <details> 做二次确认（不带脚本）。 #}
+
+{% block title %}Cairn 凯恩 · 看看读得对不对{% endblock %}
+
+{% block content %}
+{% if rows %}
+{% set focus = rows[0] %}
+<h1 class="page-title">看看读得对不对（第 1/{{ rows|length }} 道）</h1>
+
+<p class="hint">{% if focus.confidence is not none and focus.confidence < 0.6 %}机器读的 · {{ focus.subject }} · 机器不太确定，请核对{% else %}机器读的 · {{ focus.subject }}{% endif %}</p>
+
+{% if focus.has_crop %}
+<div class="figure figure--shown">
+  <img src="/questions/{{ focus.question_id }}/crop" alt="第 {{ focus.item_id }} 题在卷子上的原图">
+</div>
+{% endif %}
+
+<div class="ask-card">
+  <p class="confirm-stem">{{ focus.content }}</p>
+
+  {% if focus.analysis %}
+  <div class="verdict">
+    <span class="verdict__label">讲解</span>
+    <span>{{ focus.analysis }}</span>
+  </div>
+  {% endif %}
+</div>
+
+<div class="select-actions">
+  <form method="post" action="/review-queue/confirm">
+    <input type="hidden" name="item_id" value="{{ focus.item_id }}">
+    <button type="submit" class="btn btn--primary">{% if rows|length == 1 %}读得对，收进去{% else %}读得对，下一道{% endif %}</button>
+  </form>
+</div>
+
+<p class="confirm-links">
+  <a class="btn--ghost" href="/questions/{{ focus.question_id }}/edit?back=queue">读得不对，改一下</a>
+  <a class="btn--ghost" href="/questions/{{ focus.question_id }}">看原图</a>
+</p>
+
+{# 这道不收：文字链 + <details> 二次确认（B.5 圈错了的题，确认后从这张卷子移除） #}
+<details class="reject-box">
+  <summary class="linklike">这道不收</summary>
+  <p class="hint--foot">不收就不再练这道题了。想取消，再点一下「这道不收」收起。</p>
+  <form method="post" action="/review-queue/reject">
+    <input type="hidden" name="item_id" value="{{ focus.item_id }}">
+    <button type="submit" class="btn btn--secondary">真的不收</button>
+  </form>
+</details>
+
+{% if rows|length > 1 %}
+<section class="section">
+  <span class="section__title">后面还有 {{ rows|length - 1 }} 道</span>
+  <ul class="qlist">
+    {% for row in rows[1:] %}
+    <li>
+      <div class="qcard"><span class="qcard__stem">{{ row.content }}</span></div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% else %}
+
+<section class="empty">
+  <h1 class="empty__title">现在没有要确认的题</h1>
+  <p class="empty__text">机器读完题，拿不准的会排到这里，等你看一眼。</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/practice">去练一题</a></div>
+</section>
+
+{% endif %}
+
+{% if blocked %}
+<section class="section">
+  <span class="section__title">还在等的 {{ blocked|length }} 道</span>
+  <ul>
+    {% for row in blocked %}
+    <li>
+      <div class="list-row">
+        <span class="list-row__main">{{ row.content }}</span>
+        <span class="list-row__meta"><a class="btn--ghost" href="/questions/{{ row.question_id }}">看原图</a></span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="hint--foot">这道题原题已经连着答对了，还要再答对一道同类的题，才算学会。</p>
+</section>
+{% endif %}
+{% endblock %}

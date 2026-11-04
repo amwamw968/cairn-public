@@ -1,0 +1,45 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · {{ 'Review questions' if lang == 'en' else '核对题目' }}{% endblock %}
+{% block content %}
+<p class="hint"><a class="btn--ghost" href="?lang={{ 'zh' if lang == 'en' else 'en' }}">{{ '中文' if lang == 'en' else 'English' }}</a></p>
+{% if progress.status == 'failed' %}
+<section class="empty">
+  <h1 class="empty__title">{{ 'This flow needs attention' if lang == 'en' else '这张卷子暂时无法继续' }}</h1>
+  <p class="empty__text">{{ 'Your review decisions have been saved.' if lang == 'en' else '已经确认的题目都保存好了。' }}</p>
+  {% if can_skip_collection %}<p class="empty__text">{{ 'Could not add questions to the collection. Check its subject and capacity, or skip this step; reviewed questions are preserved.' if lang == 'en' else '暂时无法收录到题集，请检查题集学科和容量；也可以跳过收录，已核对的题目会保留。' }}</p>{% endif %}
+  <form method="post" action="/scans/{{ scan.id }}/workflow-retry"><input type="hidden" name="lang" value="{{ lang }}"><button class="btn btn--primary" type="submit">{{ 'Try again' if lang == 'en' else '再试一次' }}</button></form>
+  {% if can_skip_collection %}<form method="post" action="/scans/{{ scan.id }}/workflow-skip-collection"><input type="hidden" name="lang" value="{{ lang }}"><button class="btn btn--secondary" type="submit">{{ 'Skip collection, keep questions' if lang == 'en' else '跳过收录，保留题目' }}</button></form>{% endif %}
+  <div class="empty__cta"><a class="btn btn--secondary" href="/scans/{{ scan.id }}">{{ 'View scan' if lang == 'en' else '查看卷子' }}</a></div>
+</section>
+{% elif pending %}
+{% set item, question = pending[0] %}
+<h1 class="page-title">{{ 'Check this question' if lang == 'en' else '看看这道题' }}</h1>
+<p class="hint">{{ (items|length - pending|length + 1) }} / {{ items|length }} · {{ 'Review the text before continuing' if lang == 'en' else '核对题目内容后继续' }}</p>
+{% if question.id in crop_ids %}<div class="figure figure--shown"><img src="/questions/{{ question.id }}/crop" alt="{{ 'Question image' if lang == 'en' else '题目原图' }}"></div>{% endif %}
+<div class="ask-card">
+  <p class="confirm-stem">{{ question.content or ('No text recognized' if lang == 'en' else '暂未识别出文字') }}</p>
+  {% if question.answer %}<p>{{ ('Answer: ' if lang == 'en' else '答案：') ~ question.answer }}</p>{% endif %}
+  {% if question.analysis %}<div class="verdict"><span class="verdict__label">{{ 'Explanation' if lang == 'en' else '讲解' }}</span><span>{{ question.analysis }}</span></div>{% endif %}
+</div>
+<div class="select-actions">
+  <form method="post" action="/scans/{{ scan.id }}/workflow-review/{{ question.id }}">
+    <input type="hidden" name="decision" value="confirmed"><input type="hidden" name="lang" value="{{ lang }}">
+    <button type="submit" class="btn btn--primary">{{ 'Looks correct' if lang == 'en' else '读得对，继续' }}</button>
+  </form>
+</div>
+<p class="confirm-links"><a class="btn--ghost" href="/questions/{{ question.id }}/edit?back=workflow-{{ scan.id }}{% if lang == 'en' %}-en{% endif %}">{{ 'Edit question' if lang == 'en' else '读得不对，改一下' }}</a>{% if workflow_image %} <a class="btn--ghost" href="/api/scans/{{ scan.id }}/workflow-image" target="_blank" rel="noopener">{{ 'View full page' if lang == 'en' else '查看整张卷子' }}</a>{% endif %}</p>
+<details class="reject-box"><summary class="linklike">{{ 'Remove this question' if lang == 'en' else '这道不收' }}</summary>
+  <p class="hint--foot">{{ 'This question will be archived.' if lang == 'en' else '不收就不再练这道题。' }}</p>
+  <form method="post" action="/scans/{{ scan.id }}/workflow-review/{{ question.id }}">
+    <input type="hidden" name="decision" value="rejected"><input type="hidden" name="lang" value="{{ lang }}">
+    <button type="submit" class="btn btn--secondary">{{ 'Confirm removal' if lang == 'en' else '确认不收' }}</button>
+  </form>
+</details>
+{% else %}
+<section class="empty">
+  <h1 class="empty__title">{{ 'Review complete' if lang == 'en' else '这张卷子核对好了' }}</h1>
+  <p class="empty__text">{{ 'Your decisions have been saved.' if lang == 'en' else '你的选择已经保存。' }}</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/scans/{{ scan.id }}">{{ 'View scan' if lang == 'en' else '查看卷子' }}</a></div>
+</section>
+{% endif %}
+{% endblock %}

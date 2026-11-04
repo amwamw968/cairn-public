@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="{{ 'en' if ui_lang == 'en' else 'zh-Hans' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Cairn 凯恩{% endblock %}</title>
+<link rel="icon" href="/static/logo-cairn.svg?v=20261103-ui" type="image/svg+xml">
+<link rel="stylesheet" href="/static/v3.css?v=20261104-theme-final">
+{% block page_styles %}{% endblock %}
+</head>
+<body>
+<!-- V3.1 内联图标雪碧图（与 /static/icons.svg 同名同形，取 6 个常用；同文档 <use> 全浏览器可用） -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-book-open-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"/><path d="m16 12 2 2 4-4"/><path d="M22 6V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2h4.001A2 2 0 0022 17v-1.344"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+  </defs>
+</svg>
+<div class="shell">
+
+  <!-- 桌面左侧栏：logo + 口号 + 四入口（与手机底部同名同序） -->
+  <aside class="shell__side">
+    <div class="brand">
+      <img class="brand__logo" src="/static/logo-cairn.svg?v=20261103-ui" width="44" height="44" alt="{{ 'Cairn' if ui_lang == 'en' else 'Cairn 凯恩' }}">
+      <div>
+        <div class="brand__name">{{ 'Cairn' if ui_lang == 'en' else 'Cairn 凯恩' }}</div>
+        <div class="brand__slogan">{{ 'Your learning companion' if ui_lang == 'en' else '您的学习小伙伴' }}</div>
+      </div>
+    </div>
+    <div class="side-divider"></div>
+    <nav class="side-nav" aria-label="{{ 'Main navigation' if ui_lang == 'en' else '主导航' }}">
+      <a class="side-nav__item{% if nav_active == 'today' %} is-on{% endif %}{% if nav_off is defined and 'today' in nav_off %} is-off{% endif %}" href="/"{% if nav_active == 'today' %} aria-current="page"{% endif %}>
+        <svg class="side-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <span class="side-nav__grow">{{ 'Today' if ui_lang == 'en' else '今天' }}</span>
+        {% if badge_today is defined and badge_today %}<span class="side-nav__badge">{{ badge_today }}</span>{% endif %}
+      </a>
+      <a class="side-nav__item{% if nav_active == 'book' %} is-on{% endif %}{% if nav_off is defined and 'book' in nav_off %} is-off{% endif %}" href="/questions"{% if nav_active == 'book' %} aria-current="page"{% endif %}>
+        <svg class="side-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        <span class="side-nav__grow">{{ 'Questions' if ui_lang == 'en' else '错题本' }}</span>
+        {% if badge_book is defined and badge_book %}<span class="side-nav__badge side-nav__badge--muted">{{ badge_book }}</span>{% endif %}
+      </a>
+      <a class="side-nav__item{% if nav_active == 'capture' %} is-on{% endif %}{% if nav_off is defined and 'capture' in nav_off %} is-off{% endif %}" href="/upload"{% if nav_active == 'capture' %} aria-current="page"{% endif %}>
+        <svg class="side-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="4"/><path d="M8 7l1.5-2.5h5L16 7"/></svg>
+        <span class="side-nav__grow">{{ 'Capture' if ui_lang == 'en' else '拍卷子' }}</span>
+      </a>
+      <a class="side-nav__item{% if nav_active == 'settings' %} is-on{% endif %}{% if nav_off is defined and 'settings' in nav_off %} is-off{% endif %}" href="/settings"{% if nav_active == 'settings' %} aria-current="page"{% endif %}>
+        <svg class="side-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="side-nav__grow">{{ 'Settings' if ui_lang == 'en' else '设置' }}</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="shell__body">
+    <!-- 手机头部：logo + 名 + 口号，右侧日期（桌面看侧栏与内容列日期） -->
+    <header class="head">
+      <div class="brand">
+        <img class="brand__logo" src="/static/logo-cairn.svg?v=20261103-ui" width="36" height="36" alt="{{ 'Cairn' if ui_lang == 'en' else 'Cairn 凯恩' }}">
+        <div>
+          <div class="brand__name">{{ 'Cairn' if ui_lang == 'en' else 'Cairn 凯恩' }}</div>
+          <div class="brand__slogan">{{ 'Your learning companion' if ui_lang == 'en' else '您的学习小伙伴' }}</div>
+        </div>
+      </div>
+      <div class="head__date">{{ date_text }}</div>
+    </header>
+
+    <main class="main{% block main_class %}{% endblock %}">
+      <div class="main-date">{{ date_text }}</div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- 手机底部四导航（宽屏由侧栏承担，不重复）；图标复用 icons.svg 雪碧图 -->
+  <nav class="tabbar" aria-label="{{ 'Bottom navigation' if ui_lang == 'en' else '底部导航' }}">
+    <a class="tabbar__item{% if nav_active == 'today' %} is-on{% endif %}{% if nav_off is defined and 'today' in nav_off %} is-off{% endif %}" href="/"{% if nav_active == 'today' %} aria-current="page"{% endif %}>
+      <svg class="tabbar__icon" aria-hidden="true"><use href="#i-house"/></svg><span>{{ 'Today' if ui_lang == 'en' else '今天' }}</span>
+    </a>
+    <a class="tabbar__item{% if nav_active == 'book' %} is-on{% endif %}{% if nav_off is defined and 'book' in nav_off %} is-off{% endif %}" href="/questions"{% if nav_active == 'book' %} aria-current="page"{% endif %}>
+      <svg class="tabbar__icon" aria-hidden="true"><use href="#i-book-open-check"/></svg><span>{{ 'Questions' if ui_lang == 'en' else '错题本' }}</span>
+    </a>
+    <a class="tabbar__item{% if nav_active == 'capture' %} is-on{% endif %}{% if nav_off is defined and 'capture' in nav_off %} is-off{% endif %}" href="/upload"{% if nav_active == 'capture' %} aria-current="page"{% endif %}>
+      <svg class="tabbar__icon" aria-hidden="true"><use href="#i-camera"/></svg><span>{{ 'Capture' if ui_lang == 'en' else '拍卷子' }}</span>
+    </a>
+    <a class="tabbar__item{% if nav_active == 'settings' %} is-on{% endif %}{% if nav_off is defined and 'settings' in nav_off %} is-off{% endif %}" href="/settings"{% if nav_active == 'settings' %} aria-current="page"{% endif %}>
+      <svg class="tabbar__icon" aria-hidden="true"><use href="#i-settings"/></svg><span>{{ 'Settings' if ui_lang == 'en' else '设置' }}</span>
+    </a>
+  </nav>
+
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

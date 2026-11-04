@@ -1,0 +1,23 @@
+# Local host-network example. Configure CAIRN_IMAGE and CAIRN_DATA_DIR as needed.
+services:
+  cairn-web:
+    image: ${CAIRN_IMAGE:-cairn:local}
+    container_name: cairn-web
+    network_mode: host
+    command: ["uvicorn", "cairn.web:app", "--host", "127.0.0.1", "--port", "${CAIRN_WEB_PORT:-18100}"]
+    environment:
+      CAIRN_DB_URL: sqlite:////data/cairn.db
+    volumes:
+      - ${CAIRN_DATA_DIR:-./data}:/data
+    restart: unless-stopped
+
+  cairn-mcp:
+    image: ${CAIRN_IMAGE:-cairn:local}
+    container_name: cairn-mcp
+    network_mode: host
+    command: ["python", "-m", "cairn.mcp_server", "--transport", "http", "--host", "127.0.0.1", "--port", "18130"]
+    environment:
+      CAIRN_DB_URL: sqlite:////data/cairn.db
+    volumes:
+      - ${CAIRN_DATA_DIR:-./data}:/data
+    restart: unless-stopped

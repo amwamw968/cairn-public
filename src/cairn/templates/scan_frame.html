@@ -1,0 +1,310 @@
+{% extends "_base.html" %}
+{% block title %}Cairn · 我自己框题 · 照片 #{{ scan.id }}{% endblock %}
+{% block workspace_class %} frame-workspace{% endblock %}
+{% block main %}
+
+<header class="workspace-header">
+<div class="workspace-brand"><img src="/static/logo-cairn.svg?v=20261103-ui" alt=""><h1>我自己框题 · 照片 #{{ scan.id }}</h1></div>
+<nav class="workspace-nav" aria-label="卷子工作区导航">
+  <a href="/scans">已拍</a><a href="/scans/{{ scan.id }}">照片详情</a>
+  <a href="/scans/{{ scan.id }}/questions">切好的题</a><a href="/practice">练一题</a>
+</nav>
+</header>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+{% for text in warnings %}<p class="warn">{{ text }}</p>{% endfor %}
+
+<p class="hint">
+  在照片上按住往下拖，框住一整道题，松手就留下一个框；框右上角的 × 可以删掉。
+  滚轮缩放，按「移动画面」拖动或按住 Shift 拖画面。框住的每道题都会当成错题收进去。
+  {% if angle %}<br>这张照片是歪的，下面已经是摆正后的样子（转了 {{ angle }}°）。{% endif %}
+  {% if existing %}<br>这张卷子里已经有 {{ existing }} 道题了；你自己框的还是从第 1 块开始编号，位置上已经有题就会跳过。{% endif %}
+</p>
+
+<div class="bar">
+  <div class="tool-group" role="group" aria-label="选择画布操作模式">
+    <span class="tool-group__label">画布模式</span>
+    <button type="button" id="mode-draw" class="on" aria-pressed="true">框题</button>
+    <button type="button" id="mode-move" aria-pressed="false">移动画面</button>
+  </div>
+  <div class="tool-group" role="group" aria-label="调整照片大小">
+    <span class="tool-group__label">照片大小</span>
+    <button type="button" id="zoom-out">缩小</button>
+    <button type="button" id="zoom-in">放大</button>
+    <button type="button" id="zoom-fit">整页</button>
+  </div>
+  <div class="tool-group" role="group" aria-label="管理已框题目">
+    <span class="tool-group__label">已框题目</span>
+    <button type="button" id="undo">撤销上一个框</button>
+    <button type="button" id="clear">清空全部</button>
+  </div>
+  <span class="count-chip" role="status" aria-live="polite">已经框了 <span class="count" id="count">0</span> 道</span>
+</div>
+
+<div class="stage draw" id="stage">
+  <img id="shot" src="/scans/{{ scan.id }}/upright" alt="摆正后的照片 #{{ scan.id }}">
+  <div class="boxes" id="boxes"></div>
+</div>
+<p class="hint" id="tip" role="status" aria-live="polite"></p>
+<p class="notice" id="narrow-summary" role="status" aria-live="polite" hidden></p>
+
+<form method="post" action="/scans/{{ scan.id }}/frame" id="frame-form">
+  <div class="row">
+    <label>科目
+      <select name="subject">
+        <option value="数学" {% if subject == '数学' %}selected{% endif %}>数学</option>
+        <option value="英语" {% if subject == '英语' %}selected{% endif %}>英语</option>
+        <option value="语文" {% if subject == '语文' %}selected{% endif %}>语文</option>
+      </select>
+    </label>
+    <label>类别
+      <input name="question_type" value="{{ question_type }}" size="8">
+    </label>
+    <span class="hint">这次框的题是同一科目/类别；填错可以到练习页再改。</span>
+  </div>
+  <div class="row">
+    <button type="submit" class="btn btn--primary">把这些题收进错题本</button>
+    <span class="hint">框太小的（任一边不到 {{ min_side }} 像素）这次一道都不收。框偏窄只是提醒，不拦你提交。</span>
+  </div>
+</form>
+
+{% if not has_image %}
+<p class="warn">这张照片读不出来（可能坏了），现在只能看看，没法收进错题本。</p>
+{% endif %}
+<noscript><p class="warn">这个页面需要浏览器开启 JavaScript 才能框题。</p></noscript>
+
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var img = document.getElementById('shot');
+  var layer = document.getElementById('boxes');
+  var form = document.getElementById('frame-form');
+  var countEl = document.getElementById('count');
+  var tipEl = document.getElementById('tip');
+  var narrowEl = document.getElementById('narrow-summary');
+  var MIN = {{ min_side }};
+  // 框任一边不到这个像素数就算"窄"：只在这框旁边提一句，**不拦提交**。
+  var NARROW = 60;
+
+  var scale = 1, ox = 0, oy = 0;   // 图片像素 -> 画面像素
+  var frames = [];                 // [{x0,y0,x1,y1}]，图片像素坐标
+  var draft = null;
+  var pan = null;
+  var mode = 'draw';
+
+  function natural() {
+    return [img.naturalWidth || {{ page_width }} || 1, img.naturalHeight || {{ page_height }} || 1];
+  }
+
+  function fit() {
+    var nw = natural()[0], nh = natural()[1];
+    var w = stage.clientWidth || 1, h = stage.clientHeight || 1;
+    scale = Math.min(w / nw, h / nh) * 0.96;
+    ox = (w - nw * scale) / 2;
+    oy = (h - nh * scale) / 2;
+  }
+
+  function zoomAt(mx, my, factor) {
+    var ix = (mx - ox) / scale, iy = (my - oy) / scale;
+    scale = Math.min(Math.max(scale * factor, 0.05), 10);
+    ox = mx - ix * scale;
+    oy = my - iy * scale;
+  }
+
+  function toImage(clientX, clientY) {
+    var r = stage.getBoundingClientRect();
+    return [(clientX - r.left - ox) / scale, (clientY - r.top - oy) / scale];
+  }
+
+  function norm(f) {
+    var nw = natural()[0], nh = natural()[1];
+    var x0 = Math.min(f.x0, f.x1), x1 = Math.max(f.x0, f.x1);
+    var y0 = Math.min(f.y0, f.y1), y1 = Math.max(f.y0, f.y1);
+    x0 = Math.min(Math.max(x0, 0), nw); x1 = Math.min(Math.max(x1, 0), nw);
+    y0 = Math.min(Math.max(y0, 0), nh); y1 = Math.min(Math.max(y1, 0), nh);
+    return {x0: x0, y0: y0, x1: x1, y1: y1};
+  }
+
+  function isNarrow(f) {
+    return (Math.abs(f.x1 - f.x0) < NARROW) || (Math.abs(f.y1 - f.y0) < NARROW);
+  }
+
+  function boxEl(f, index, isDraft) {
+    var d = document.createElement('div');
+    d.className = 'box' + (isDraft ? ' draft' : '');
+    var x0 = Math.min(f.x0, f.x1), y0 = Math.min(f.y0, f.y1);
+    var w = Math.abs(f.x1 - f.x0), h = Math.abs(f.y1 - f.y0);
+    d.style.left = (ox + x0 * scale) + 'px';
+    d.style.top = (oy + y0 * scale) + 'px';
+    d.style.width = Math.max(w * scale, 1) + 'px';
+    d.style.height = Math.max(h * scale, 1) + 'px';
+    if (!isDraft && isNarrow(f)) {
+      var note = document.createElement('span');
+      note.className = 'narrow-note';
+      note.textContent = '这个框有点窄，可能只框到一行';
+      d.appendChild(note);
+    }
+    if (!isDraft) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'del';
+      b.textContent = '×';
+      b.title = '删掉这个框';
+      b.style.transform = 'scale(' + (1 / scale) + ')';
+      b.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); });
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        frames.splice(index, 1);
+        render();
+      });
+      d.appendChild(b);
+    }
+    return d;
+  }
+
+  function render() {
+    var nw = natural()[0], nh = natural()[1];
+    img.style.width = nw + 'px';
+    img.style.height = nh + 'px';
+    img.style.transform = 'translate(' + ox + 'px,' + oy + 'px) scale(' + scale + ')';
+    layer.innerHTML = '';
+    frames.forEach(function (f, i) { layer.appendChild(boxEl(f, i, false)); });
+    if (draft) layer.appendChild(boxEl(draft, -1, true));
+    countEl.textContent = frames.length;
+    showNarrowSummary();
+  }
+
+  // 页面上那一句"有 N 个框偏窄"：只是提醒，提交按钮照旧能点。
+  function showNarrowSummary() {
+    var narrow = frames.filter(isNarrow).length;
+    if (!narrow) {
+      narrowEl.hidden = true;
+      narrowEl.textContent = '';
+      return;
+    }
+    narrowEl.textContent = '有 ' + narrow + ' 个框偏窄（任一边不到 ' + NARROW
+      + ' 像素），可能只框到一行——只是提醒，不影响提交。';
+    narrowEl.hidden = false;
+  }
+
+  function undoLast() {
+    if (!frames.length) { tip('还没框到题，没有可撤销的框。'); return; }
+    frames.pop();
+    tip('');
+    render();
+  }
+
+  function clearAll() {
+    if (!frames.length) { tip('还没框到题，不用清空。'); return; }
+    if (!window.confirm('把已经框好的 ' + frames.length + ' 个框全部清掉？')) { return; }
+    frames = [];
+    tip('');
+    render();
+  }
+
+  function tip(text) { tipEl.textContent = text || ''; }
+
+  function setMode(next) {
+    mode = next;
+    draft = null;
+    stage.className = 'stage ' + (next === 'draw' ? 'draw' : 'move');
+    document.getElementById('mode-draw').className = next === 'draw' ? 'on' : '';
+    document.getElementById('mode-move').className = next === 'move' ? 'on' : '';
+    document.getElementById('mode-draw').setAttribute('aria-pressed', String(next === 'draw'));
+    document.getElementById('mode-move').setAttribute('aria-pressed', String(next === 'move'));
+    render();
+  }
+
+  stage.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0) { return; }
+    stage.setPointerCapture(ev.pointerId);
+    if (mode === 'move' || ev.shiftKey) {
+      pan = {x: ev.clientX, y: ev.clientY, ox: ox, oy: oy};
+      stage.classList.add('dragging');
+      return;
+    }
+    var p = toImage(ev.clientX, ev.clientY);
+    draft = {x0: p[0], y0: p[1], x1: p[0], y1: p[1]};
+    render();
+  });
+
+  stage.addEventListener('pointermove', function (ev) {
+    if (pan) {
+      ox = pan.ox + (ev.clientX - pan.x);
+      oy = pan.oy + (ev.clientY - pan.y);
+      render();
+      return;
+    }
+    if (!draft) { return; }
+    var p = toImage(ev.clientX, ev.clientY);
+    draft.x1 = p[0];
+    draft.y1 = p[1];
+    render();
+  });
+
+  function endDrag() {
+    if (pan) {
+      pan = null;
+      stage.classList.remove('dragging');
+      return;
+    }
+    if (!draft) { return; }
+    var f = norm(draft);
+    draft = null;
+    var w = f.x1 - f.x0, h = f.y1 - f.y0;
+    if (w >= MIN && h >= MIN) {
+      frames.push(f);
+      tip('');
+    } else {
+      tip('框太小了（任一边不到 ' + MIN + ' 像素），没算进去。框住一整道题再松手。');
+    }
+    render();
+  }
+
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  stage.addEventListener('wheel', function (ev) {
+    ev.preventDefault();
+    var r = stage.getBoundingClientRect();
+    zoomAt(ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.0015));
+    render();
+  }, {passive: false});
+
+  document.getElementById('mode-draw').addEventListener('click', function () { setMode('draw'); });
+  document.getElementById('mode-move').addEventListener('click', function () { setMode('move'); });
+  document.getElementById('zoom-in').addEventListener('click', function () {
+    zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, 1.25); render();
+  });
+  document.getElementById('zoom-out').addEventListener('click', function () {
+    zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, 0.8); render();
+  });
+  document.getElementById('zoom-fit').addEventListener('click', function () { fit(); render(); });
+  document.getElementById('undo').addEventListener('click', undoLast);
+  document.getElementById('clear').addEventListener('click', clearAll);
+
+  form.addEventListener('submit', function (ev) {
+    if (!frames.length) {
+      ev.preventDefault();
+      tip('还没框到题：在照片上按住往下拖，框住一道题再提交。');
+      return;
+    }
+    form.querySelectorAll('input[name^="frame_"]').forEach(function (node) { node.remove(); });
+    frames.forEach(function (f, i) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'frame_' + i;
+      input.value = [f.x0, f.y0, f.x1, f.y1].map(Math.round).join(',');
+      form.appendChild(input);
+    });
+  });
+
+  function reload() { fit(); render(); }
+  if (img.complete && img.naturalWidth) { reload(); }
+  img.addEventListener('load', reload);
+  window.addEventListener('resize', function () { fit(); render(); });
+})();
+</script>
+
+{% endblock %}

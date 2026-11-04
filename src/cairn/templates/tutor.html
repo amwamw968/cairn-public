@@ -1,0 +1,58 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 讲解{% endblock %}
+
+{% block main %}
+<h1>讲解（先想后看）</h1>
+
+{% if question_id %}
+<div class="card">
+  <p class="meta" id="stage">还没开始</p>
+  <div id="text" class="text-block">点「开始讲解」——老师会先问你思路，不会直接给答案。</div>
+  <textarea id="child" class="textarea" placeholder="（可选）先把你的想法打在这里"></textarea>
+  <div class="button-row">
+    <button id="start" class="btn btn--primary">开始讲解</button>
+    <button id="next" class="btn" disabled>下一段</button>
+    <button id="reveal" class="btn" disabled>不想了，直接看讲解</button>
+  </div>
+  <p class="meta" id="err"></p>
+</div>
+<script>
+let sessionId = null;
+const $ = (id) => document.getElementById(id);
+async function post(url, body) {
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    const detail = (await resp.json().catch(() => ({}))).detail || resp.status;
+    throw new Error(detail);
+  }
+  return resp.json();
+}
+async function go(url, body) {
+  $("err").textContent = "";
+  try {
+    const data = await post(url, body);
+    sessionId = data.session_id;
+    $("stage").textContent = "当前段：" + data.stage +
+      (data.leak_blocked ? "（本段启用了安全兜底文案）" : "");
+    $("text").textContent = data.text;
+    $("start").disabled = true;
+    $("next").disabled = data.stage === "explain";
+    $("reveal").disabled = data.stage === "explain";
+    $("child").value = "";
+  } catch (e) { $("err").textContent = "出错：" + e.message; }
+}
+$("start").onclick = () => go("/tutor/start", { question_id: {{ question_id }} });
+$("next").onclick = () => go("/tutor/next", { session_id: sessionId, child_text: $("child").value });
+$("reveal").onclick = () => go("/tutor/reveal", { session_id: sessionId });
+</script>
+{% else %}
+<div class="card">
+  <p>从练习页的错题进入讲解；或带上 <code>?question_id=编号</code> 打开本页。</p>
+</div>
+{% endif %}
+{% endblock %}

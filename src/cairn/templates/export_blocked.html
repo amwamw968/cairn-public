@@ -1,0 +1,10 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · 导出学习数据{% endblock %}
+{% block content %}
+<section class="empty">
+  <h1 class="empty__title">先完成这张卷子</h1>
+  <p class="empty__text">学习数据导出暂不包含卷子照片和处理进度。完成已选题目的核对和处理后，再导出才能保留正确的练习状态。</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/scans/{{ scan_id }}/workflow">继续处理卷子</a></div>
+  <p><a class="btn--ghost" href="/scans">查看卷子列表</a></p>
+</section>
+{% endblock %}

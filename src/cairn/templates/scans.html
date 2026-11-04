@@ -1,0 +1,95 @@
+{% extends "_base.html" %}
+{# 已拍的卷子（V1 页面级改造 · 第一批第 1 页）：
+   这一页只回答「我一共拍进来几张、每张走到哪一步、下一步点哪儿」。
+   骨架全部来自 _base.html，导航来自 _nav.html，页内没有任何样式块与脚本。
+
+   三条沿用下来的约束：
+   1. 一行一个出口：整行是一个 <a class="list-row">，行里不放 button。列表页放按钮
+      就会变成第二个入口，两个入口迟早各自判一遍状态。
+   2. 状态不在这里判：`stages` 是 scan_service.stage_for 算好的，页面只查表。
+      模板里那两处 {% set %} 只是把表里的值数一遍（AC5 的三个数字），不改后端返回。
+   3. 不发明新链接参数：缩略图走 /scans/{id}/image，详情走 /scans/{id}。 #}
+
+{% block title %}Cairn · 已拍的卷子{% endblock %}
+
+{% block main %}
+{# 待处理 = 停在裁边或选题的照片；已收好 = 已经有题收进去的照片。
+   两个数都从 web.py 已经发下来的 stages 里数，不新增后端字段。
+   三个数摆成三格（数字在上、标签在下）：这是页面上唯一的汇总区，
+   原来那行「共 N 张 · 待处理 M · 已收好 K」的小字换成了格卡。 #}
+{% set pending_count = stages.values() | select("in", ["crop", "select", "review", "processing", "failed"]) | list | length %}
+{% set stored_total = stages.values() | select("equalto", "ready") | list | length %}
+
+<div class="page-head">
+  <div class="page-head__text">
+    <p class="kicker">卷子 · 已拍</p>
+    <h1>已拍的卷子</h1>
+    <p class="lede">按拍摄时间从新到旧排；每行点进去是那张照片的详情。</p>
+  </div>
+  {# 空库时这一块整个不渲染：那一屏的主按钮是 .empty 里的「拍第一张」，
+     一页只许一个主按钮（AC3/AC4 都数 .btn--primary 的个数）。 #}
+  {% if scans %}<div class="page-head__actions">
+    <a class="btn btn--primary" href="/upload">拍一张</a>
+  </div>{% endif %}
+</div>
+
+{% if scans %}
+{# 三格：数字在上（20/600 等宽数字）、标签在下（11 等宽三级色），格间一条 1px 竖线。
+   第一格的标签写「共 张」——数字占上面那行之后，「共」只剩标签行可落，量词「张」跟着它；
+   三格念下来仍是「共 N 张 / 待处理 M / 已收好 K」，一个字没少。 #}
+<div class="summary">
+  <div class="summary__item">
+    <span class="summary__value">{{ scans|length }}</span>
+    <span class="summary__label">共 张</span>
+  </div>
+  <div class="summary__item">
+    <span class="summary__value">{{ pending_count }}</span>
+    <span class="summary__label">待处理</span>
+  </div>
+  <div class="summary__item">
+    <span class="summary__value">{{ stored_total }}</span>
+    <span class="summary__label">已收好</span>
+  </div>
+</div>
+
+<section class="section">
+  <h2 class="section__title">最近拍的<span>{{ scans|length }} 张</span></h2>
+  <ul>
+    {% for scan in scans %}
+    {% set step = stages.get(scan.id, 'crop') %}
+    <li>
+      <a class="list-row" href="/scans/{{ scan.id }}">
+        <img class="thumb" src="/scans/{{ scan.id }}/image"
+             alt="照片 #{{ scan.id }} 的缩略图">
+        <span class="list-row__main">{{ local_time(scan.captured_at).strftime('%m-%d %H:%M') }}<span class="list-row__meta">{{ scan.device_name }} · {{ scan.width }}×{{ scan.height }} · {{ scan.path.split('/')[-1] }}</span></span>
+        <span class="list-row__step">
+          {%- if step == 'ready' %}已收好 {{ counts.get(scan.id, 0) }}
+          {%- elif step == 'select' %}待选题
+          {%- elif step == 'review' %}待核对
+          {%- elif step == 'processing' %}待处理
+          {%- elif step == 'failed' %}待重试
+          {%- else %}待裁边{% endif -%}
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<div class="section">
+  <p class="hint--foot">这一页只指路，改动在照片详情页里做。</p>
+</div>
+{% else %}
+{# 空库：不再摆 0 · 0 · 0 三个零，也不留一张空表——直接给下一步。
+   骨架用页面层的 .state：标题说清现在是什么都没有，说明给第二条路，
+   动作行只放一个主按钮（页头那个「拍一张」在空态下不渲染，一页只许一个主按钮）。
+   说明里「手动输入」是指向 /entry 的链接——空库时家长不该只有「再拍一张」一条路。 #}
+<div class="state">
+  <p class="state__title">还没有拍过一张纸。</p>
+  <p class="state__detail">也可以从 <a href="/entry">手动输入</a> 开始 → /entry</p>
+  <div class="state__actions">
+    <a class="btn btn--primary" href="/upload">拍第一张</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "_base.html" %}
+{# 数字化确认页（P5-b）：机器读一遍，家长改一改，再收进去。
+   整页只有一条保存路径（POST /questions/{id}/edit）；「让机器读这题 / 再读一次」
+   是同一个表单里的另一个提交键（formaction 指到 /digitize），所以这一页没有 JS、
+   也只有一个 <form>。读出来的值只画在输入框里，不写库——保存要家长自己点。
+   结论条口径与裁边页一致：左一句人话，右一行等宽小字说依据。 #}
+
+{% block title %}Cairn · 确认错题 #{{ question.id }}{% endblock %}
+
+{% block main %}
+<h1>确认 {% if question_no %}卷面第 {{ question_no }} 题{% else %}这道题{% endif %}</h1>
+
+<div class="facts">
+  <div class="facts__cell">
+    <p class="facts__caption">科目</p>
+    <p class="facts__value">{{ question.subject }}</p>
+    <p class="facts__meta">{{ question.question_type }}</p>
+  </div>
+  <div class="facts__cell">
+    <p class="facts__caption">来源</p>
+    <p class="facts__value">{{ question.source }}</p>
+  </div>
+  {% if model_text %}
+  <div class="facts__cell">
+    <p class="facts__caption">模型</p>
+    <p class="facts__value">{{ model_text }}</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if result %}
+<div class="verdict" id="digitize-verdict">
+  <span class="verdict__label">这题读出来了</span>
+  <span class="verdict__meta">{{ model_text }} · {{ field_count }} 个字段</span>
+</div>
+{% elif model_error %}
+<div class="verdict" id="digitize-verdict">
+  <span class="verdict__label">模型没读出来</span>
+  <span class="verdict__meta">请手动填，或换云端模型再试</span>
+</div>
+{% endif %}
+
+{% if model_error %}<p class="notice notice--danger" role="alert">{{ model_error }}</p>{% endif %}
+
+{% if has_crop %}
+<div class="figure">
+  <img src="/questions/{{ question.id }}/crop" alt="第 {{ question_no }} 题的原图裁块">
+</div>
+<p class="figure__cap">从摆正后的卷面裁下来的那一块，不是重新排版的题面</p>
+{% else %}
+<p class="figure__cap">{% if crop_missing %}这道题没有原图{% else %}暂无原图{% endif %}：机器读不了这道题，请手动填。</p>
+{% endif %}
+
+<form method="post" action="/questions/{{ question.id }}/edit">
+  <div class="select-actions">
+    <button type="submit" formaction="/questions/{{ question.id }}/digitize"
+            class="btn {% if result %}btn--quiet{% else %}btn--primary{% endif %}"
+            id="digitize-read">{% if result or model_error %}再读一次{% else %}让机器读这题{% endif %}</button>
+  </div>
+
+  <div class="field">
+    <label for="digitize-content">题干</label>
+    <textarea id="digitize-content" name="content" rows="5">{{ fields.content }}</textarea>
+  </div>
+  <div class="field">
+    <label for="digitize-answer">答案</label>
+    <input id="digitize-answer" type="text" name="answer" value="{{ fields.answer }}"
+           placeholder="留空 = 这道题还没有标准答案">
+  </div>
+  <div class="field">
+    <label for="digitize-analysis">讲解</label>
+    <textarea id="digitize-analysis" name="analysis" rows="3">{{ fields.analysis }}</textarea>
+  </div>
+
+  <fieldset class="field">
+    <legend>用哪个模型读</legend>
+    <label>
+      <input type="radio" name="provider" value="local"{% if provider == 'local' %} checked{% endif %}>
+      用本机模型（快、不出门）
+    </label>
+    <label>
+      <input type="radio" name="provider" value="cloud"{% if provider == 'cloud' %} checked{% endif %}>
+      用云端模型（更准、内容会发出去）
+    </label>
+  </fieldset>
+
+  <div class="select-actions">
+    <button type="submit"
+            class="btn {% if result %}btn--primary{% else %}btn--quiet{% endif %}"
+            id="digitize-save">保存这道题</button>
+  </div>
+</form>
+
+<p class="select-foot">读出来的只是草稿：点「保存这道题」才收进去。</p>
+<p class="select-foot"><a href="/questions/{{ question.id }}">回这道题</a></p>
+{% endblock %}

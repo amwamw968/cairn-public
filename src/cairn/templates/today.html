@@ -1,0 +1,99 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn 凯恩 · 今天{% endblock %}
+{% block main_class %} main--wide main--today{% endblock %}
+{% block content %}
+  {% if mode == "empty" %}
+  <section class="empty">
+    <h1 class="empty__title">今天还没有要复习的题</h1>
+    <p class="empty__text">拍一张孩子的卷子，圈出做错的题，剩下的交给我们。</p>
+  </section>
+  {% elif mode == "done" %}
+  <section class="today-head">
+    <h1 class="today-head__title">今天的练习做完了 ✅</h1>
+    <p class="today-head__sub">今天已完成 {{ done_count }} 题练习{% if due_tomorrow > 0 %} · 还有 {{ due_tomorrow }} 道题明天见{% endif %}</p>
+  </section>
+  {% else %}
+  <section class="today-head">
+    <h1 class="today-head__title">今天有 {{ due_count }} 题要练</h1>
+    <div class="today-head__cta only-mobile">
+      {% if done_count > 0 %}
+      {# B.6 移交（G2-2→G2-5）：练到一半时主按钮报真实进度 #}
+      <a class="btn btn--primary" href="/practice">练到一半（{{ done_count }}/{{ done_count + due_count }}），继续</a>
+      {% else %}
+      <a class="btn btn--primary" href="/practice">开始今天的练习</a>
+      {% endif %}
+    </div>
+    {% if mode == "todo" and done_count + due_count > 0 %}
+    {% set today_total = done_count + due_count %}
+    <div class="today-progress">
+      <div class="today-progress__labels">
+        <span>今日进度</span>
+        <span>{{ done_count }} / {{ today_total }} 题</span>
+      </div>
+      <div class="today-progress__track" role="progressbar" aria-label="今日练习进度" aria-valuemin="0" aria-valuemax="{{ today_total }}" aria-valuenow="{{ done_count }}">
+        <span style="width: {{ (done_count * 100 / today_total)|round|int }}%"></span>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% set tile_count = 1 + (1 if mode == 'todo' else 0) + (1 if pending_count > 0 else 0) %}
+  <!-- 桌面磁贴行：手机走下面的卡片/按钮堆叠，两套不同时出现 -->
+  <div class="only-desktop">
+    <div class="tile-row today-dashboard today-dashboard--{{ tile_count }}">
+      {% if mode == "todo" %}
+      <a class="tile tile--primary" href="/practice">
+        <span class="tile__label">今天的练习</span>
+        <span class="tile__big">{{ due_count }} 题</span>
+        <span class="tile__sub">今天到期要练</span>
+        <span class="tile__cta">开始 →</span>
+      </a>
+      {% endif %}
+      {% if pending_count > 0 %}
+      <a class="tile{% if mode == 'done' %} tile--primary{% else %} tile--secondary{% endif %}" href="{{ pending_href }}">
+        <span class="tile__label">待处理的卷子</span>
+        <span class="tile__big">{{ pending_count }} 张</span>
+        <span class="tile__sub">{{ pending_sub }}</span>
+        <span class="tile__cta">去处理 →</span>
+      </a>
+      {% endif %}
+      <a class="tile{% if mode == 'empty' %} tile--primary{% else %} tile--secondary{% endif %}" href="/upload">
+        <span class="tile__label">拍一张卷子</span>
+        <span class="tile__icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="4"/><path d="M8 7l1.5-2.5h5L16 7"/></svg>
+        </span>
+        <span class="tile__sub">{% if mode == 'empty' %}把做错的题收进来{% else %}把新错题收进来{% endif %}</span>
+        <span class="tile__cta">去拍 →</span>
+      </a>
+    </div>
+  </div>
+
+  {% if pending_count > 0 %}
+  <a class="pending-card only-mobile" href="{{ pending_href }}">
+    <span>{{ pending_text }}（{{ pending_count }} 张）</span>
+    <svg class="pending-card__chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+  </a>
+  {% endif %}
+
+  {% if glance_text %}
+  <a class="glance-card{% if tile_count == 1 %} glance-card--single{% endif %}" href="/stats">
+    <span>{{ glance_text }}</span>
+    <svg class="pending-card__chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+  </a>
+  {% endif %}
+
+  {% if mode == "empty" %}
+  <div class="stack only-mobile">
+    <a class="btn btn--primary" href="/upload">拍一张卷子</a>
+  </div>
+  {% else %}
+  <div class="stack only-mobile">
+    <a class="btn btn--secondary" href="/upload">拍一张卷子</a>
+  </div>
+  {% endif %}
+
+  {% if mode == "empty" %}
+  <p class="hint">拍进来 → 圈出错的 → 明天开始练</p>
+  {% endif %}
+{% endblock %}

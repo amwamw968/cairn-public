@@ -1,0 +1,125 @@
+{% extends "_base.html" %}
+{# 卷子详情（卡 W1 / W1-fix）：这一页的任务是"下一步该点哪儿"。
+   骨架来自 _base.html；图片放在 .figure 里（img 由 .figure img 限宽 100%）；
+   图片下面那条 .select-actions 是 D2b 的印刷表单语法（按钮当表格的行，主按钮整行、
+   2px 墨线、行尾一个箭头），与裁边页/圈选页同一套。
+   主按钮由后端算好的 stage 三选一（crop / select / ready），模板里不判状态；
+   按钮下面一行等宽小字是机器给的依据（纸占多少 / 已收好几道），由 web.py 的
+   _stage_hint 拼好，模板同样不写死任何一条。
+   W1-fix：元信息不再是 <table>（那张表的最小内容宽被压缩过的质量指标 JSON 撑到
+   900+，390 视口被撑成 492）。现在一行一个字段：短字段进 .facts 三列，长字段
+   一行一条 .verdict（两线夹一行），这一页没有 table/tr/td。
+   质量指标那段 JSON 是浏览器 JSON.stringify 出来的单行，这里把逗号后补一个空格，
+   给它换行点——否则整段是一个不可断的长 token，照样把窄屏撑破。 #}
+
+{% block title %}Cairn · 照片 #{{ scan.id }}{% endblock %}
+
+{% block main %}
+<h1>照片 #{{ scan.id }}</h1>
+
+<div class="figure">
+  <img src="/scans/{{ scan.id }}/image{% if processed_ready %}?source={{ view }}{% endif %}" alt="照片 #{{ scan.id }}">
+</div>
+
+<div class="select-actions">
+  {% if stage == 'crop' %}
+  <a class="btn btn--primary" href="/scans/{{ scan.id }}/crop">确认裁边</a>
+  {% elif stage == 'select' %}
+  <a class="btn btn--primary" href="/scans/{{ scan.id }}/select">选出要收的题</a>
+  {% else %}
+  <a class="btn btn--primary" href="/practice">开始复习</a>
+  {% endif %}
+  <div class="select-actions__row">
+    {% if stage == 'ready' and first_question_id %}
+    <a class="btn btn--quiet" href="/questions/{{ first_question_id }}/digitize">看这道题</a>
+    {% endif %}
+    <a class="btn btn--quiet" href="/scans/{{ scan.id }}?source=original">原图</a>
+    <a class="btn btn--quiet" href="/devices">再拍一张</a>
+  </div>
+</div>
+
+<p class="select-foot">{{ stage_hint }}</p>
+
+{% if processed_ready %}
+<p class="hint">把纸压白、字加深的是「增强后」；原图一直留着，没动。</p>
+<p>
+  {% if view == 'processed' %}
+  <a href="/scans/{{ scan.id }}?source=original">原图</a> · <strong>增强后</strong>
+  {% else %}
+  <strong>原图</strong> · <a href="/scans/{{ scan.id }}?source=processed">增强后</a>
+  {% endif %}
+</p>
+{% endif %}
+
+<div class="facts">
+  <div class="facts__cell">
+    <p class="facts__caption">设备</p>
+    <p class="facts__value">{{ scan.device_name }}</p>
+  </div>
+  <div class="facts__cell">
+    <p class="facts__caption">分辨率</p>
+    <p class="facts__value">{{ scan.width }}×{{ scan.height }}</p>
+  </div>
+  <div class="facts__cell">
+    <p class="facts__caption">拍摄时间</p>
+    <p class="facts__value">{{ captured_at.strftime('%Y-%m-%d') }}</p>
+    <p class="facts__meta">{{ captured_at.strftime('%H:%M:%S') }}</p>
+  </div>
+</div>
+
+<div class="verdict">
+  <span class="verdict__label">来源</span>
+  <span class="verdict__meta">{% if scan.source == 'upload' %}浏览器上传{% else %}拍摄（设备采集）{% endif %}</span>
+</div>
+<div class="verdict">
+  <span class="verdict__label">设备 ID</span>
+  <span class="verdict__meta"><code>{{ scan.device_id }}</code></span>
+</div>
+<div class="verdict">
+  <span class="verdict__label">落盘路径</span>
+  <span class="verdict__meta"><code>{{ scan.path }}</code></span>
+</div>
+<p class="hint">相对库目录</p>
+{% if scan.source == 'upload' %}
+<div class="verdict">
+  <span class="verdict__label">质量指标</span>
+  <span class="verdict__meta"><code>{{ (scan.quality_json or '（前端未报）')|replace(',', ', ') }}</code></span>
+</div>
+{% endif %}
+{% if scan.note %}
+<div class="verdict">
+  <span class="verdict__label">备注</span>
+  <span>{{ scan.note }}</span>
+</div>
+{% endif %}
+
+{% if question %}
+<p>✅ 已收好：{{ question.subject }} · {{ question.question_type }} · <a href="/practice?added={{ question.id }}">去练习</a></p>
+{% elif not workflow_mode %}
+<h2>人工确认收好</h2>
+{% if confirm_error %}<p class="notice notice--danger">{{ confirm_error }}</p>{% endif %}
+<form method="post" action="/scans/{{ scan.id }}/confirm">
+  <label class="field">科目
+    <select class="input" name="subject">
+      <option value="数学">数学</option>
+      <option value="英语">英语</option>
+      <option value="语文">语文</option>
+    </select>
+  </label>
+  <label class="field">题干（照图上的题抄；识别不出就手写大意）
+    <textarea class="textarea" name="content" rows="3" required placeholder="例：12 + 15 = ？"></textarea>
+  </label>
+  <label class="field">答案
+    <input class="input" name="answer" required placeholder="例：27">
+  </label>
+  <label class="field">类别
+    <input class="input" name="question_type" required placeholder="计算 / 填空 / 应用 / 选择 …">
+  </label>
+  <button type="submit" class="btn btn--primary">确认收进去</button>
+</form>
+<p class="hint">确认后建一条错题并进入复习排期；同一张图只会建一次题。</p>
+{% endif %}
+
+<p class="hint">拍到/传上来只是第一步；读题与切题以后交流水线（ADR-007），先由家长人工确认收好。</p>
+<p><a href="/scans">返回已拍</a> · <a href="/devices">再拍一张</a></p>
+{% endblock %}

@@ -1,0 +1,12 @@
+FROM hub.rat.dev/library/python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 CAIRN_DB_URL=sqlite:////data/cairn.db PYTHONPATH=/srv/cairn/src
+RUN sed -i 's|http://deb.debian.org/debian-security|https://mirrors.aliyun.com/debian-security|g; s|http://deb.debian.org/debian|https://mirrors.aliyun.com/debian|g' /etc/apt/sources.list.d/debian.sources && apt-get update && apt-get install -y --no-install-recommends libxcb1 libgl1 libglib2.0-0 && find /var/lib/apt/lists -type f -delete
+COPY deploy/requirements.txt /tmp/requirements.txt
+COPY deploy/wheelhouse.tar.gz /tmp/wheelhouse.tar.gz
+RUN tar -xzf /tmp/wheelhouse.tar.gz -C /tmp && pip install --no-index --find-links /tmp/wheelhouse -r /tmp/requirements.txt && pip check
+WORKDIR /srv/cairn
+COPY pyproject.toml ./
+COPY src ./src
+RUN python -c 'import cv2, math_verify; from cairn.ocr.engine import _get_engine; _get_engine()'
+EXPOSE 18100 18130
+CMD ["python", "-m", "cairn.mcp_server", "--transport", "http", "--host", "127.0.0.1", "--port", "18130"]

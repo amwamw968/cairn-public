@@ -1,0 +1,55 @@
+{% extends "_v3.html" %}
+{# 最近怎么样（v3 · E.11）：一句话总结最大 + 简表。近况与今天页同源
+   （glance_service.build_glance），点回题目进详情。无主按钮（纯展示）。 #}
+
+{% block title %}Cairn 凯恩 · 最近怎么样{% endblock %}
+
+{% block content %}
+<h1 class="page-title">最近怎么样</h1>
+
+{% if glance.practiced_this_week or glance.repeated_wrong %}
+<section class="today-head">
+  <p class="today-head__title">
+    {%- if glance.practiced_this_week and glance.repeated_wrong -%}
+    这周练了 {{ glance.practiced_this_week }} 题，{{ glance.repeated_wrong }} 题还在反复错
+    {%- elif glance.practiced_this_week -%}
+    这周练了 {{ glance.practiced_this_week }} 题，都还稳
+    {%- else -%}
+    {{ glance.repeated_wrong }} 题还在反复错
+    {%- endif -%}
+  </p>
+</section>
+
+<section class="section">
+  <span class="section__title">这一周</span>
+  <ul>
+    <li><div class="list-row"><span class="list-row__main">练了几题</span><span class="list-row__meta">{{ glance.practiced_this_week }} 题</span></div></li>
+    <li><div class="list-row"><span class="list-row__main">几题过关</span><span class="list-row__meta">{{ passed_this_week }} 题</span></div></li>
+    <li><div class="list-row"><span class="list-row__main">还在反复错的题</span><span class="list-row__meta">{{ repeated_rows|length }} 题</span></div></li>
+  </ul>
+</section>
+
+{% if repeated_rows %}
+<section class="section">
+  <span class="section__title">还在反复错</span>
+  <ul class="qlist">
+    {% for row in repeated_rows %}
+    <li>
+      <a class="qcard" href="/questions/{{ row.question_id }}">
+        <span class="qcard__stem">{{ row.content }}</span>
+        <span class="qcard__meta"><span>错过 {{ row.wrong_count }} 次</span><span class="qcard__grow"></span><span class="pill pill--warn">还在反复错</span></span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% else %}
+<section class="empty">
+  <h1 class="empty__title">还没有练习记录</h1>
+  <p class="empty__text">孩子练过的题会在这里汇成一句话。</p>
+  <div class="empty__cta"><a class="btn btn--primary" href="/practice">先去完成今天的练习</a></div>
+</section>
+{% endif %}
+{% endblock %}

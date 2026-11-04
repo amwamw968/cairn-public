@@ -1,0 +1,13 @@
+# 运行期依赖（不含本项目的 cairn 包本身）。
+# 这一份只在「重建基础镜像」时才需要联网，平时改代码不碰它。
+sqlalchemy>=2.0,<3
+fsrs==6.3.2
+fastapi>=0.110
+jinja2>=3.1
+uvicorn>=0.29
+mcp>=2.3.0
+# 整页 OCR（通道卡 B）：连带 onnxruntime / opencv-python 等二进制依赖。
+rapidocr-onnxruntime>=1.4,<2
+
+# Mathematical equivalence grading (matches pyproject.toml).
+math-verify>=0.8

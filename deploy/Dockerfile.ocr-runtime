@@ -1,0 +1,8 @@
+# Add the shared libraries needed by the existing OpenCV and RapidOCR wheels.
+ARG CAIRN_APP_IMAGE=cairn:local
+FROM ${CAIRN_APP_IMAGE}
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libxcb1 libgl1 libglib2.0-0 \
+    && python -c 'from cairn.ocr.engine import _get_engine; _get_engine()' \
+    && find /var/lib/apt/lists -type f -delete

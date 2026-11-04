@@ -1,0 +1,28 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · {{ 'Scan progress' if lang == 'en' else '卷子进度' }}{% endblock %}
+{% block content %}
+<p class="hint"><a class="btn--ghost" href="?lang={{ 'zh' if lang == 'en' else 'en' }}">{{ '中文' if lang == 'en' else 'English' }}</a></p>
+<h1 class="page-title">{{ 'Scan progress' if lang == 'en' else '这张卷子的进度' }}</h1>
+{% if progress.status == 'failed' %}
+<p class="notice notice--warn">{% if can_skip_collection %}{{ 'Could not add questions to the collection. Check its subject and capacity, or skip this step; reviewed questions are preserved.' if lang == 'en' else '暂时无法收录到题集，请检查题集学科和容量；也可以跳过收录，已核对的题目会保留。' }}{% else %}{{ 'This step could not finish. Your progress is saved; try again.' if lang == 'en' else '这一步暂时没有完成，之前的进度已保存，可以再试一次。' }}{% endif %}</p>
+{% elif progress.status == 'completed' %}
+<p class="notice">{{ 'This scan is ready.' if lang == 'en' else '这张卷子处理好了。' }}</p>
+{% elif progress.status == 'pending' %}
+<p class="hint">{{ 'Start processing this scan.' if lang == 'en' else '准备好后，开始处理这张卷子。' }}</p>
+{% else %}
+<p class="notice notice--warn">{{ 'This step needs attention.' if lang == 'en' else '当前步骤需要处理。' }}</p>
+{% endif %}
+<ul class="qlist">
+{% for step in steps %}<li><div class="qcard"><span class="qcard__stem">{{ step.label }}</span><span class="qcard__meta">{% if step.status == 'completed' %}{{ 'Done' if lang == 'en' else '已完成' }}{% elif step.status == 'skipped' %}{{ 'Skipped' if lang == 'en' else '已跳过' }}{% elif step.status == 'waiting' %}{{ 'Waiting' if lang == 'en' else '待处理' }}{% elif step.status == 'failed' %}{{ 'Needs retry' if lang == 'en' else '待重试' }}{% else %}{{ 'Upcoming' if lang == 'en' else '未开始' }}{% endif %}</span></div></li>{% endfor %}
+</ul>
+{% if progress.status in ['pending', 'failed'] %}
+<div class="select-actions"><form method="post" action="/scans/{{ scan.id }}/workflow-continue"><input type="hidden" name="lang" value="{{ lang }}"><button class="btn btn--primary" type="submit">{{ ('Try again' if progress.status == 'failed' else 'Start') if lang == 'en' else ('再试一次' if progress.status == 'failed' else '开始处理') }}</button></form></div>
+{% endif %}
+{% if can_skip_cut %}
+<div class="select-actions"><form method="post" action="/scans/{{ scan.id }}/workflow-manual-cut"><input type="hidden" name="lang" value="{{ lang }}"><button class="btn btn--secondary" type="submit">{{ 'Select questions manually' if lang == 'en' else '跳过自动切题，自己圈题' }}</button></form></div>
+{% endif %}
+{% if can_skip_collection %}
+<div class="select-actions"><form method="post" action="/scans/{{ scan.id }}/workflow-skip-collection"><input type="hidden" name="lang" value="{{ lang }}"><button class="btn btn--secondary" type="submit">{{ 'Skip collection, keep questions' if lang == 'en' else '跳过收录，保留题目' }}</button></form></div>
+{% endif %}
+<p class="confirm-links"><a class="btn--ghost" href="{{ '/scans/' ~ scan.id if progress.status == 'completed' else '/scans' }}">{{ ('View scan' if progress.status == 'completed' else 'All scans') if lang == 'en' else ('查看卷子' if progress.status == 'completed' else '返回卷子列表') }}</a></p>
+{% endblock %}

@@ -1,0 +1,12 @@
+# 构建上下文只放镜像真正要的四样：deploy/requirements.txt、deploy/wheelhouse.tar.gz、src、pyproject.toml。
+# 其余一律不进上下文——尤其 src/cairn.egg-info（本机旧安装残留，版本号会骗人）。
+.git
+.venv
+.workbuddy
+.pytest_cache
+**/__pycache__
+**/*.pyc
+src/cairn.egg-info
+tests
+docs
+deploy/wheelhouse

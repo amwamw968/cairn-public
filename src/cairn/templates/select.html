@@ -1,0 +1,78 @@
+{% extends "_v3.html" %}
+{# 圈错题（v3 · 蓝图 E.4）：点一下做错的题。钩子一个不改：
+   #select-counts(#count-auto/#count-manual/#count-picked) / #select-stage 全套 data-* /
+   #select-image / #select-boxes(.select-box/.select-box__no/.select-box__x) /
+   #select-status / #select-submit(#submit-count) / #select-all / #select-none。
+   交互全在 static/select-questions.js（逻辑不动）；按钮未选禁用态的
+   「点一下做错的题」纯 CSS 换字（:disabled 切两段标签，不加脚本）。 #}
+
+{% block title %}{{ 'Cairn · Select questions' if ui_lang == 'en' else 'Cairn 凯恩 · 圈错题' }}{% endblock %}
+
+{% block content %}
+{% if workflow_mode %}<p class="hint"><a class="btn--ghost" id="workflow-language" href="?lang={{ 'zh' if ui_lang == 'en' else 'en' }}">{{ '中文' if ui_lang == 'en' else 'English' }}</a></p>{% endif %}
+<h1 class="page-title">{{ 'Select questions to practice' if ui_lang == 'en' else '点一下做错的题' }}</h1>
+
+<div class="counts" id="select-counts">
+  <span class="counts__cell">{{ 'Detected' if ui_lang == 'en' else '机器圈的' }}<span class="counts__value" id="count-auto">{{ auto_count }}</span></span>
+  <span class="counts__dot" aria-hidden="true">·</span>
+  <span class="counts__cell">{{ 'Drawn' if ui_lang == 'en' else '自己圈的' }}<span class="counts__value" id="count-manual">0</span></span>
+  <span class="counts__dot" aria-hidden="true">·</span>
+  <span class="counts__cell">{{ 'Selected' if ui_lang == 'en' else '选了' }}<span class="counts__value" id="count-picked">0</span></span>
+</div>
+
+{% if error %}<p class="notice notice--danger">{{ error }}</p>{% endif %}
+{% if not boxes %}<p class="select-empty">{{ 'No questions were detected. Draw a box around each question you want to keep.' if ui_lang == 'en' else '没认出这页有哪些题，点一下做错的题的位置' }}</p>{% endif %}
+
+<div class="select-stage" id="select-stage" data-scan-id="{{ scan.id }}"
+     data-page-width="{{ page_width }}" data-page-height="{{ page_height }}"
+     data-image-sha256="{{ image_sha256 }}" data-image-w="{{ page_width }}"
+     data-image-h="{{ page_height }}" data-recipe="{{ recipe }}"
+     data-params-hash="{{ params_hash }}" data-workflow="{{ '1' if workflow_mode else '0' }}" data-lang="{{ ui_lang or 'zh' }}">
+  <img class="select-stage__image" id="select-image"
+       src="{{ image_url or ('/scans/' ~ scan.id ~ '/upright') }}"
+       alt="{{ 'Page image' if ui_lang == 'en' else '照片' }} #{{ scan.id }}{{ '' if ui_lang == 'en' else ' 摆正后的整页' }}">
+  <div class="select-stage__boxes" id="select-boxes">
+    {% for box in boxes %}
+    <div class="select-box" data-source="auto" data-no="{{ box.no }}"
+         data-selected="{{ '1' if box.preselected else '0' }}"
+         data-frame-key="{{ box.frame_key }}" data-strategy="{{ box.source }}"
+         data-x0="{{ box.x0 }}" data-y0="{{ box.y0 }}" data-x1="{{ box.x1 }}" data-y1="{{ box.y1 }}">
+      <span class="select-box__no">{{ 'Question ' ~ box.no if ui_lang == 'en' else '第 ' ~ box.no ~ ' 题' }}{% if box.inferred %}?{% endif %}</span>
+      <button type="button" class="select-box__x"
+              aria-label="{{ 'Remove box for question ' ~ box.no if ui_lang == 'en' else '删掉第 ' ~ box.no ~ ' 题这个框' }}"></button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<p class="notice notice--danger" id="select-status" role="status" hidden></p>
+
+{% if workflow_mode %}
+{% set canonical_subject = collection_subject or '数学' %}
+{% set display_subject = {'数学': 'Math', '英语': 'English', '语文': 'Chinese'}.get(canonical_subject, canonical_subject) if ui_lang == 'en' else canonical_subject %}
+<div class="edit-form">
+  <label class="edit-form__label" for="workflow-subject">{{ 'Subject' if ui_lang == 'en' else '科目' }} <input class="edit-form__input" id="workflow-subject" type="text" value="{{ display_subject }}" data-canonical="{{ canonical_subject }}" data-display="{{ display_subject }}" maxlength="32" required></label>
+  {% if collection_subject %}<p class="hint">{{ ('The destination collection uses ' ~ display_subject ~ '. Choose the same subject for these questions.') if ui_lang == 'en' else ('目标题集的学科是' ~ display_subject ~ '，请为本卷选择相同学科。') }}</p>{% endif %}
+  <label class="edit-form__label" for="workflow-question-type">{{ 'Question type' if ui_lang == 'en' else '题型' }} <input class="edit-form__input" id="workflow-question-type" type="text" value="{{ 'Fill in' if ui_lang == 'en' else '填空' }}" maxlength="32" required></label>
+</div>
+{% endif %}
+
+<div class="select-actions">
+  <button type="button" class="btn btn--primary" id="select-submit" disabled>
+    <span class="submit-when-on">{{ 'Keep ' if ui_lang == 'en' else '就选这 ' }}<span id="submit-count">0</span>{{ ' selected' if ui_lang == 'en' else ' 道' }}</span>
+    <span class="submit-when-off">{{ 'Select a question' if ui_lang == 'en' else '点一下做错的题' }}</span>
+  </button>
+  <div class="select-actions__row">
+    <button type="button" class="btn btn--secondary" id="select-all">{{ 'Select all' if ui_lang == 'en' else '全选' }}</button>
+    <button type="button" class="btn btn--secondary" id="select-none">{{ 'Clear selection' if ui_lang == 'en' else '全不选' }}</button>
+  </div>
+</div>
+
+<p class="select-foot">{{ 'Selected boxes are saved; boxes you draw become new questions.' if ui_lang == 'en' else '勾中的就是收进去的；自己圈的当新题收' }}</p>
+
+<noscript><p class="notice notice--warn">{{ 'Enable JavaScript to select or draw boxes.' if ui_lang == 'en' else '这个页面要靠 JavaScript 才能勾框、画框；打开后再回来。' }}</p></noscript>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/select-questions.js" defer></script>
+{% endblock %}

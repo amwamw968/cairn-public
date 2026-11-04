@@ -1,0 +1,36 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · {{ 'Your explanation' if lang == 'en' else '你的解题思路' }}{% endblock %}
+{% block content %}
+<p class="hint"><a id="recap-language" class="btn--ghost" href="?lang={{ 'zh' if lang == 'en' else 'en' }}">{{ '中文' if lang == 'en' else 'English' }}</a></p>
+<h1 class="page-title">{{ 'Your explanation' if lang == 'en' else '你的解题思路' }}</h1>
+<div class="ask-card"><p class="practice-stem">{{ question.content }}</p><p>{{ attempt.initial_text }}</p></div>
+{% if attempt.status == 'needs_followup' %}
+  {% if prompt %}<p>{{ prompt }}</p>{% endif %}
+  {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/practice/recap/result/{{ attempt.id }}/followup">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <label for="recap-followup">{{ 'Add to your explanation' if lang == 'en' else '补充你的想法' }}</label>
+    <textarea id="recap-followup" name="text" maxlength="2000" rows="5" style="width:100%">{{ text }}</textarea>
+    <div class="select-actions"><button class="btn btn--primary" type="submit">{{ 'Save response' if lang == 'en' else '保存回答' }}</button></div>
+  </form>
+{% elif attempt.status == 'unsure' %}
+  <p>{{ 'Saved for another review.' if lang == 'en' else '已记为需要重练。' }}</p>
+{% elif attempt.status == 'unavailable' %}
+  <p>{{ 'Feedback is unavailable right now. No grade was recorded.' if lang == 'en' else '暂时无法给出可靠提示，没有记录评分。' }}</p>
+{% else %}
+  {% if attempt.followup_text %}<p>{{ attempt.followup_text }}</p>{% endif %}
+  <p>{{ 'Your explanation has been saved. Discuss it with a parent or teacher.' if lang == 'en' else '你的思路已保存，可以和家长或老师一起看看。' }}</p>
+  {% if attempt.assessment != 'adequate' %}
+    <p>{{ 'AI suggestion: review your reasoning together with a parent or teacher.' if lang == 'en' else 'AI 提示：可以和家长或老师一起再检查一下思路。' }}</p>
+  {% endif %}
+  <p class="hint">{{ 'AI feedback is a suggestion; it does not grade your answer.' if lang == 'en' else 'AI 反馈只是练习提示，不会自动评分。' }}</p>
+{% endif %}
+<p><a class="btn--ghost" href="/practice/recap/{{ attempt.error_item_id }}?lang={{ lang }}">{{ 'Try again' if lang == 'en' else '再试一次' }}</a> <a class="btn--ghost" href="/practice?item_id={{ attempt.error_item_id }}">{{ 'Back to practice' if lang == 'en' else '返回练习' }}</a></p>
+{% if attempt.status == 'needs_followup' %}
+<script>
+document.getElementById('recap-language').addEventListener('click', (event) => {
+  if (document.getElementById('recap-followup').value.trim() && !confirm({{ ('Switching languages discards your unsaved text. Continue?' if lang == 'en' else '切换语言会丢失尚未保存的文字，继续吗？') | tojson }})) event.preventDefault();
+});
+</script>
+{% endif %}
+{% endblock %}

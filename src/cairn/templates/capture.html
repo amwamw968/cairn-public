@@ -1,0 +1,312 @@
+{% extends "_v3.html" %}
+{# 拍卷子（v3 · 蓝图 E.2）：这一页只回答「拍一张卷子」。
+   六个钩子是后端与内联 JS 的接口，改样式可以、改名不行：
+   form#upload-form（action/method/enctype）、input#file-input（name/type/accept/required）、
+   input#quality-input、img#preview、div#verdict、button#submit-btn。
+   内联脚本里阈值常量、computeMetrics() 算式、change/paste 两个监听逐字未动；
+   动过的只有「结果拼成什么 HTML / 按钮叫什么」（渲染层）。
+   全页唯一主按钮是「拍照」（触发选图，手机上直接开相机）；选好图后
+   #submit-btn 解禁当续步（用这张 / 仍然用这张），样式是次按钮——
+   同一时刻只有一个主行动。 #}
+
+{% block title %}Cairn 凯恩 · 拍卷子{% endblock %}
+{% block main_class %} main--wide main--capture{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <h1 class="page-title">拍一张卷子</h1>
+  <p class="hint">页面铺平，光线均匀，四角都拍进来</p>
+</section>
+
+{% if error %}<p class="notice notice--danger">{{ error }}</p>{% endif %}
+
+<div class="capture-layout">
+<div class="capture-panel">
+<form method="post" action="/scans/upload" enctype="multipart/form-data" id="upload-form">
+  <input type="hidden" name="quality" id="quality-input" value="">
+
+  <section class="section">
+    <div class="pick-row">
+      <label class="btn btn--primary" for="file-input">
+        <svg class="btn__play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="4"/><path d="M8 7l1.5-2.5h5L16 7"/></svg>
+        拍照
+      </label>
+      <input type="file" name="file" id="file-input" accept="image/*" required hidden>
+      <label class="btn--ghost" for="file-input">从相册选</label>
+    </div>
+    <img id="preview" class="figure" alt="预览" hidden>
+    {# 图注跟着预览走：未选图时带 hidden，不占位；选中后由 showVerdict() 展开。 #}
+    <p class="figure__cap" hidden>选中的这张，未做任何处理</p>
+  </section>
+
+  {# 结论条与三格数据都由脚本写进这个空容器（未选图时这里什么都不渲染）。
+     第 3 区块「哪一项不合格」同样由脚本条件渲染：全合格时它整块不出现。
+     V3.1b：未选图时整段收起（含「用这张」按钮行），选图后由 showVerdict() 展开。 #}
+  <section class="section" id="measure-section" hidden>
+    <span class="section__title">量出来的结果</span>
+    <div id="verdict"></div>
+  </section>
+
+  <div class="select-actions" id="submit-row" hidden>
+    <button type="submit" id="submit-btn" class="btn btn--secondary" disabled>用这张</button>
+    <label class="btn--ghost" for="file-input">重新选一张</label>
+  </div>
+</form>
+
+<div class="foot-links">
+  <a class="btn--ghost" href="/scans">已拍的卷子</a>
+  <a class="btn--ghost" href="/entry">手动输入一道题</a>
+</div>
+</div>
+
+<aside class="capture-guide" aria-labelledby="capture-guide-title">
+  <p class="capture-guide__eyebrow">拍摄前看一眼</p>
+  <h2 class="capture-guide__title" id="capture-guide-title">让题目清楚入镜</h2>
+  <ol class="capture-guide__steps">
+    <li><span>把卷子铺平，尽量不要折叠</span></li>
+    <li><span>光线均匀，避开手和手机的影子</span></li>
+    <li><span>把整页和四个边角都拍完整</span></li>
+  </ol>
+  <p class="capture-guide__privacy">照片质量先在这台设备上检查；确认后照片会上传到 Cairn。</p>
+  <p class="hint--foot only-desktop">电脑上也可以把截图粘贴到这页。</p>
+</aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ---- 阈值常量：起点值来自《豆包爱学逆向报告》(docs/OCR-PIPELINE-ADOPTION.md)，
+//      没有用真实样本标定过，属于"先跑起来再标定"的占位，禁止当成硬真理。
+const THRESH = {
+  blur_var: 60,            // Laplacian 方差下限；< 60 → 太糊
+  dark_ratio: 0.35,        // 灰度 < 60 的像素占比上限；> 0.35 → 太暗
+  overexposure_ratio: 0.25,// 灰度 > 245 的像素占比上限；> 0.25 → 过曝
+  edge_density: 0.02,      // Sobel 边缘像素占比下限；< 0.02 → 不像题目页
+};
+const GRAY_DARK = 60;      // "暗像素"分界（与报告口径一致）
+const GRAY_BRIGHT = 245;   // "过曝像素"分界
+const SHORT_SIDE = 512;    // 缩图短边：指标只看结构，不用全分辨率
+const EDGE_GRAD = 100;     // Sobel 梯度幅值判定为"边缘"的门槛（简化版，需标定）
+// 短边下限：与服务端硬拒同一条线（scan_service.min_image_side，默认 1000）。
+// 小于它的图切题会漏（549×1280 → 7 题，原图 → 18 题），前端先提示，服务端再硬拒。
+const MIN_SIDE = {{ min_side|default(1000) }};
+
+const fileInput = document.getElementById('file-input');
+const qualityInput = document.getElementById('quality-input');
+const verdict = document.getElementById('verdict');
+const preview = document.getElementById('preview');
+const submitBtn = document.getElementById('submit-btn');
+const figureCap = document.querySelector('.figure__cap');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) measure(fileInput.files[0]);
+});
+
+// 剪贴板粘贴：截图后直接 Ctrl/Cmd+V
+document.addEventListener('paste', (event) => {
+  const items = event.clipboardData && event.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const blob = item.getAsFile();
+      if (blob) {
+        const file = new File([blob], 'pasted.' + (item.type.split('/')[1] || 'png'), { type: item.type });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        measure(file);
+      }
+      event.preventDefault();
+      return;
+    }
+  }
+});
+
+function measure(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const m = computeMetrics(img);
+    qualityInput.value = JSON.stringify(m);
+    showVerdict(m, file);
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    showBad(['文件读不出图像，换一张试试']);
+  };
+  img.src = url;
+}
+
+// 纯 JS 指标计算：缩图 → 灰度 → 四项指标。与 docs 里的口径一一对应。
+function computeMetrics(img) {
+  const scale = SHORT_SIDE / Math.min(img.naturalWidth, img.naturalHeight);
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const px = ctx.getImageData(0, 0, w, h).data;
+
+  // 灰度：ITU-R BT.601 加权（与常见灰度口径一致）
+  const gray = new Float64Array(w * h);
+  let sum = 0, dark = 0, bright = 0;
+  for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+    const g = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+    gray[i] = g;
+    sum += g;
+    if (g < GRAY_DARK) dark++;
+    if (g > GRAY_BRIGHT) bright++;
+  }
+  const n = w * h;
+
+  // 3×3 拉普拉斯（内点），方差 = E[v²] − E[v]²
+  let lvSum = 0, lvSqSum = 0, lvCount = 0;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const v = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w];
+      lvSum += v; lvSqSum += v * v; lvCount++;
+    }
+  }
+  const lvMean = lvCount ? lvSum / lvCount : 0;
+  const blur_var = lvCount ? lvSqSum / lvCount - lvMean * lvMean : 0;
+
+  // Sobel 简化版：梯度幅值 > EDGE_GRAD 记为边缘像素
+  let edges = 0;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const gx = -gray[i - w - 1] - 2 * gray[i - 1] - gray[i + w - 1]
+               + gray[i - w + 1] + 2 * gray[i + 1] + gray[i + w + 1];
+      const gy = -gray[i - w - 1] - 2 * gray[i - w] - gray[i - w + 1]
+               + gray[i + w - 1] + 2 * gray[i + w] + gray[i + w + 1];
+      if (Math.sqrt(gx * gx + gy * gy) > EDGE_GRAD) edges++;
+    }
+  }
+
+  return {
+    brightness: sum / n,
+    dark_ratio: dark / n,
+    overexposure_ratio: bright / n,
+    blur_var: blur_var,
+    edge_density: edges / ((w - 2) * (h - 2)),
+    width: img.naturalWidth,
+    height: img.naturalHeight,
+  };
+}
+
+// ---- 以下只负责"结果长什么样"：结论条 / 三格 / 原因行。数值全部来自上面的 m 与 THRESH。
+
+// 结论条：左边一句结论，右边一串机器值（本机算的，短边是硬门槛）。
+// tone 为空 = 合格；warn = 可以照传；fail = 不能传（短边不足，服务端也会 400）。
+function verdictBlock(label, tone, m) {
+  return '<div class="verdict' + (tone ? ' verdict--' + tone : '') + '">' +
+    '<span class="verdict__label">' + label + '</span>' +
+    '<span class="verdict__meta">本机' +
+    (m ? ' · 短边 ' + Math.min(m.width, m.height) : '') + '</span>' +
+    '</div>';
+}
+
+// 三格：清晰度 / 亮度 / 过曝。上限下限直接读 THRESH，页面上写的数就是脚本判的数。
+function factsBlock(m) {
+  return '<div class="facts">' +
+    '<div class="facts__cell">' +
+    '<p class="facts__value">' + m.blur_var.toFixed(1) + '</p>' +
+    '<p class="facts__caption">清晰度 · 下限 ' + THRESH.blur_var + '</p></div>' +
+    '<div class="facts__cell">' +
+    '<p class="facts__value">' + (m.dark_ratio * 100).toFixed(1) + '%</p>' +
+    '<p class="facts__caption">暗部占比 · 上限 ' + Math.round(THRESH.dark_ratio * 100) + '%</p></div>' +
+    '<div class="facts__cell">' +
+    '<p class="facts__value">' + (m.overexposure_ratio * 100).toFixed(1) + '%</p>' +
+    '<p class="facts__caption">过曝占比 · 上限 ' + Math.round(THRESH.overexposure_ratio * 100) + '%</p></div>' +
+    '</div>' +
+    '<p class="facts__meta">edge_density ' + m.edge_density.toFixed(4) +
+    ' · ' + m.width + '×' + m.height + ' · 短边下限 ' + MIN_SIDE + '</p>';
+}
+
+// 每条原因右侧的机器值 = 实测值 + 判据。只做格式化，判定本身仍在 showVerdict 里。
+function reasonMeta(text, m) {
+  if (!m) return '';
+  if (text === '太糊，请扶稳手机再拍') {
+    return 'blur_var ' + m.blur_var.toFixed(1) + ' < ' + THRESH.blur_var;
+  }
+  if (text === '太暗，请在光亮处拍') {
+    return 'dark_ratio ' + (m.dark_ratio * 100).toFixed(1) + '% > ' +
+      Math.round(THRESH.dark_ratio * 100) + '%';
+  }
+  if (text === '过曝/反光，换个角度') {
+    return 'overexposure ' + (m.overexposure_ratio * 100).toFixed(1) + '% > ' +
+      Math.round(THRESH.overexposure_ratio * 100) + '%';
+  }
+  if (text === '不太像题目页，请对准作业') {
+    return 'edge_density ' + m.edge_density.toFixed(4) + ' < ' + THRESH.edge_density;
+  }
+  if (text === '这张图太小，切题会漏') {
+    return '短边 ' + Math.min(m.width, m.height) + ' < ' + MIN_SIDE;
+  }
+  return '';
+}
+
+// 第 3 区块：一条原因一行。全部合格时这个函数根本不会被调用，页面上不留空 div。
+function reasonsBlock(reasons, m) {
+  const rows = reasons.map((text) => {
+    const meta = reasonMeta(text, m);
+    return '<li><div class="list-row">' +
+      '<span class="list-row__main">' + text + '</span>' +
+      (meta ? '<span class="list-row__meta">' + meta + '</span>' : '') +
+      '</div></li>';
+  }).join('');
+  return '<div class="section">' +
+    '<span class="section__title">哪一项不合格</span>' +
+    '<ul>' + rows + '</ul></div>';
+}
+
+function showVerdict(m, file) {
+  const reasons = [];
+  if (m.blur_var < THRESH.blur_var) reasons.push('太糊，请扶稳手机再拍');
+  if (m.dark_ratio > THRESH.dark_ratio) reasons.push('太暗，请在光亮处拍');
+  if (m.overexposure_ratio > THRESH.overexposure_ratio) reasons.push('过曝/反光，换个角度');
+  if (m.edge_density < THRESH.edge_density) reasons.push('不太像题目页，请对准作业');
+
+  // V3.1b：选了图才露出「量出来的结果」和「用这张」按钮行（渲染层，逻辑不变）。
+  document.getElementById('measure-section').hidden = false;
+  document.getElementById('submit-row').hidden = false;
+
+  preview.src = URL.createObjectURL(file);
+  preview.hidden = false;
+  preview.style.display = 'block';
+  figureCap.hidden = false;
+
+  const metricsHtml = factsBlock(m);
+
+  if (Math.min(m.width, m.height) < MIN_SIDE) {
+    // 小图不是"质量差点但能凑合"，是切题必漏；服务端也会 400，所以不给"仍然用这张"。
+    showBad(['这张图太小，切题会漏'], metricsHtml, true, m);
+    return;
+  }
+
+  if (reasons.length) {
+    showBad(reasons, metricsHtml, false, m);
+  } else {
+    verdict.innerHTML = verdictBlock('质量合格', '', m) + metricsHtml;
+    submitBtn.textContent = '用这张';
+    submitBtn.disabled = false;
+  }
+}
+
+function showBad(reasons, metricsHtml, blocked, m) {
+  verdict.innerHTML = verdictBlock(
+    blocked ? '不合格，不能用' : '不合格，可以照用',
+    blocked ? 'fail' : 'warn', m) +
+    (metricsHtml || '') + reasonsBlock(reasons, m) +
+    '<p class="hint--foot">' + (blocked
+      ? '这张图不会被接收，请用手机原图重新拍。'
+      : '确认要用的话，点下面的「仍然用这张」。') + '</p>';
+  submitBtn.textContent = blocked ? '换一张' : '仍然用这张';
+  // 只有短边不足（blocked）才置灰：warn 态仍留「仍然用这张」这条路（既有产品决策）。
+  submitBtn.disabled = blocked;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python 运行时与缓存
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+*.whl
+
+# Node
+node_modules/
+dist/
+.next/
+.cache/
+
+# 测试/本地数据库产物（测试用内存库，这里防将来落盘）
+*.sqlite
+*.sqlite3
+*.db
+
+# Env & secrets
+.env
+.env.*
+*.local
+.codebuddy/settings.local.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.bak.*
+
+# 编辑器/工具临时目录
+.tmp/
+scratch/
+
+# 离线依赖包（约 15MB，不进 git；用 deploy/make-wheels.sh 生成）
+deploy/wheelhouse/
+deploy/wheelhouse.tar.gz
+
+# ESP32 固件备份与构建产物：二进制不进 git（大文件，且可重新烧写）
+esp32/backups/*.bin
+esp32/**/build/
+
+# 词典（ECDICT/CC-CEDICT 构建产物与原始数据，几十~上百 MB，可由 scripts/build_dict.py 重建）
+data/dict/
+
+# TTS 磁盘缓存（运行时产物，可随时重建）
+data/tts-cache/
+scans/
+
+cairn.db-shm
+cairn.db-wal

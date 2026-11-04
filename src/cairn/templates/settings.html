@@ -1,0 +1,56 @@
+{% extends "_v3.html" %}
+{# 设置（v3 · E.12）：孩子年级（选填）/ 每天练几题（默认 5）/ 数据导出备份 / 关于。
+   唯一主按钮「保存」。主流程不依赖这里的任何设置——这一页不是必经页。 #}
+
+{% block title %}Cairn 凯恩 · 设置{% endblock %}
+
+{% block content %}
+<h1 class="page-title">设置</h1>
+
+{% if saved %}<p class="notice">保存好了。</p>{% endif %}
+
+<form method="post" action="/settings" class="edit-form">
+  <label class="edit-form__label" for="grade-level">孩子年级（选填）</label>
+  <select class="edit-form__input" id="grade-level" name="grade_level">
+    {% set grade_opts = [("primary", "自动判断"), ("primary-1", "一年级"), ("primary-2", "二年级"), ("primary-3", "三年级"), ("primary-4", "四年级"), ("primary-5", "五年级"), ("primary-6", "六年级"), ("junior-1", "初一"), ("junior-2", "初二"), ("junior-3", "初三")] %}
+    {% set matched = [] %}
+    {% for value, label in grade_opts %}{% if value == grade_level %}{{ matched.append(1) }}{% endif %}{% endfor %}
+    {% for value, label in grade_opts %}
+    <option value="{{ value }}"{% if value == grade_level %} selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+    {% if not matched %}<option value="{{ grade_level }}" selected>{{ grade_level }}</option>{% endif %}
+  </select>
+
+  <label class="edit-form__label" for="daily-target">每天练几题</label>
+  <input class="edit-form__input" id="daily-target" name="daily_target" type="number" min="1" max="50" value="{{ daily_target }}">
+  <p class="hint--foot">默认每天 5 题，随时可以改。</p>
+
+  <div class="select-actions">
+    <button type="submit" class="btn btn--primary">保存</button>
+  </div>
+</form>
+
+{% if has_collection_flow %}
+<section class="section">
+  <span class="section__title">题集练习</span>
+  <p class="hint--foot">将已发布的题集版本加入日常练习。</p>
+  <a class="btn--ghost" href="/collection-practice">查看题集练习</a>
+</section>
+{% endif %}
+
+<section class="section">
+  <span class="section__title">数据导出 / 备份</span>
+  <p class="hint--foot">JSON 包含题目、题集、复习记录和孩子的文字复述，不包含卷子照片、工作流或处理进度。</p>
+  <div class="foot-links">
+    <a class="btn--ghost" href="/export">导出学习数据</a>
+    <a class="btn--ghost" href="/export/anki" title="下载 .apkg，导入 Anki 用">导出 Anki 牌组</a>
+    <a class="btn--ghost" href="/import">导入备份</a>
+  </div>
+</section>
+
+<section class="section">
+  <span class="section__title">关于</span>
+  <p class="hint--foot">Cairn 凯恩 · 您的学习小伙伴</p>
+  <p class="hint--foot">版本 {{ version or "开发中" }}</p>
+</section>
+{% endblock %}

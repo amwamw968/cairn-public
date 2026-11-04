@@ -1,0 +1,803 @@
+/* base.css —— 基础组件。只引用 tokens.css 的变量：这份文件里**不写任何色值**。
+ *
+ * 类名是固定契约，后面的页面照着用，不要再各写一套内联 <style>：
+ *   按钮      .btn  .btn--primary  .btn--ghost  .btn--danger
+ *   卡片      .card  .card__title
+ *   表单      .field  .input  .textarea  （焦点态 / 错误态 .is-error）
+ *   提示条    .notice  .notice--info  .notice--warn  .notice--danger
+ *   空状态    .empty
+ *   标签      .badge  .badge--ok  .badge--warn
+ *   指标表    .metrics（上传页的实测数值表；后续页面复用）
+ *   小字说明  .hint
+ *
+ * 移动优先：正文 16px 起（iOS 小于 16px 聚焦会自动放大页面），
+ * 可点元素最小 44×44（--tap-min）。
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0 auto;
+  padding: var(--space-4);
+  max-width: var(--content-width);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+}
+
+h2 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+p {
+  margin: 0 0 var(--space-3);
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 顶部导航：一排大按钮式的链接，手机上排不下就换行 */
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* Scan workspaces keep their dedicated canvas while sharing the Cairn shell. */
+.workspace-header {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.workspace-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.workspace-brand img {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+}
+
+.workspace-brand h1 {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.workspace-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.workspace-nav a {
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+}
+
+.workspace-nav a:hover,
+.workspace-nav a:focus-visible {
+  color: var(--accent);
+  background: var(--accent-weak);
+  border-color: var(--accent-border);
+}
+
+.workspace-nav a:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .workspace-header { padding: var(--space-3); }
+  .workspace-brand h1 { font-size: var(--text-lg); }
+  .workspace-nav { gap: var(--space-1); }
+  .workspace-nav a { padding-inline: var(--space-3); }
+}
+
+/* ---------------------------------------------------------------- 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn:hover {
+  background: var(--surface-muted);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn--primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.btn--ghost {
+  color: var(--accent);
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+.btn--ghost:hover {
+  background: var(--accent-weak);
+  border-color: var(--accent-border);
+}
+
+.btn--danger {
+  color: var(--on-accent);
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn--danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  opacity: 0.9;
+}
+
+/* 表单里的按钮：紧跟在说明/预览后面时留一点呼吸 */
+form .btn {
+  margin-top: var(--space-2);
+}
+
+/* ---------------------------------------------------------------- 卡片 */
+.card {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.card__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+/* ---------------------------------------------------------------- 表单 */
+.field {
+  display: block;
+  margin: 0 0 var(--space-4);
+}
+
+.field > label {
+  display: block;
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.input,
+.textarea {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.textarea {
+  min-height: calc(var(--tap-min) * 3);
+  resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* 错误态：边框变红 + 整框浅红底，光靠颜色不够，配套文案由页面给 */
+.input.is-error,
+.textarea.is-error {
+  background: var(--danger-weak);
+  border-color: var(--danger);
+}
+
+.input.is-error:focus,
+.textarea.is-error:focus {
+  outline-color: var(--danger-border);
+}
+
+/* -------------------------------------------------------------- 提示条 */
+.notice {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  color: var(--text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.notice > :last-child {
+  margin-bottom: 0;
+}
+
+.notice ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.notice--info {
+  color: var(--text);
+  background: var(--accent-weak);
+  border-color: var(--accent-border);
+}
+
+.notice--warn {
+  color: var(--text);
+  background: var(--warn-weak);
+  border-color: var(--warn-border);
+}
+
+.notice--danger {
+  color: var(--text);
+  background: var(--danger-weak);
+  border-color: var(--danger-border);
+}
+
+/* -------------------------------------------------------------- 空状态 */
+.empty {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.empty > :last-child {
+  margin-bottom: 0;
+}
+
+.empty .btn {
+  margin-top: var(--space-2);
+}
+
+/* ---------------------------------------------------------------- 标签 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.badge--ok {
+  color: var(--ok);
+  background: var(--ok-weak);
+  border-color: var(--ok-border);
+}
+
+.badge--warn {
+  color: var(--warn);
+  background: var(--warn-weak);
+  border-color: var(--warn-border);
+}
+
+/* -------------------------------------------------------------- 指标表 */
+.metrics {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  border-collapse: collapse;
+}
+
+.metrics th,
+.metrics td {
+  padding: var(--space-1) var(--space-3) var(--space-1) 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.metrics th {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* 长配置表保留所有字段，窄屏在表格自身滚动，不撑宽页面。 */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.table-scroll:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.table-scroll .metrics {
+  min-width: 38rem;
+}
+
+/* ------------------------------------------------------------ 小字说明 */
+.hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* 旧类名兼容：上传页的错误块用的是 class="reject"（既有测试逐字断言这个
+ * 字符串，不能改），这里把它定义成 danger 提示条的同一套外观。 */
+.reject {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  color: var(--text);
+  background: var(--danger-weak);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+}
+
+/* ======================================================================
+ * 页面级样式（前台视觉重构那张卡追加；只允许"追加"，不改上面的组件规则）
+ *
+ * 这一组解决两类问题：
+ *   1. 模板里原来靠内联 <style> 才有的默认外观（裸 input、表格、折叠块）；
+ *   2. 页面确实需要、但在组件层不成立的形状（宽表横滚、两栏书单、框选画布）。
+ * 色值一律走 tokens.css 的变量，这份文件里不出现任何 #rrggbb。
+ * ==================================================================== */
+
+/* -------------------------------------------------- 裸表单控件（移动优先） */
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+/* 文字类控件统一 16px 起、44px 高：iOS 小于 16px 聚焦会自动放大整页 */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  min-height: var(--tap-min);
+  font-size: var(--text-base);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+}
+
+/* ---------------------------------------------------------------- 表格 */
+.table {
+  width: 100%;
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.table thead th {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.table .num {
+  text-align: right;
+}
+
+/* 宽表在窄屏横向滚动：手机上不把六列表格挤成一列字 */
+.table--scroll {
+  display: block;
+  overflow-x: auto;
+}
+
+.table .pick {
+  width: 3rem;
+}
+
+.table .pos {
+  width: 2.5rem;
+  color: var(--text-muted);
+}
+
+.table .extra {
+  width: 9rem;
+  color: var(--text-muted);
+}
+
+.table .state {
+  width: 5rem;
+}
+
+/* ---------------------------------------------------------------- 详情列表 */
+dl.detail {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-3) 0;
+}
+
+dl.detail dt {
+  color: var(--text-muted);
+}
+
+dl.detail dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ---------------------------------------------------------------- 折叠块 */
+details {
+  margin-top: var(--space-3);
+}
+
+details > summary {
+  padding: var(--space-3) 0;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------- 图片与排版块 */
+.shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.thumb {
+  display: block;
+  width: 120px;
+  height: auto;
+  border: 1px solid var(--border);
+}
+
+.meta {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.text-block {
+  white-space: pre-wrap;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-3);
+}
+
+/* 一行里并排的几个小表单（复核队列的确认/驳回） */
+.inline-form {
+  display: inline-block;
+  margin: 0 var(--space-2) var(--space-2) 0;
+}
+
+/* -------------------------------------------------------------- 指标块 */
+.metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.metrics-row > .card {
+  flex: 1 1 8rem;
+  margin: 0;
+}
+
+.metric {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+}
+
+.streak {
+  font-size: var(--text-lg);
+}
+
+/* ---------------------------------------------------------------- 折线图 */
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-3);
+}
+
+.chart .axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.chart .line {
+  fill: none;
+  stroke: var(--ok);
+  stroke-width: 2;
+}
+
+.chart .dot {
+  fill: var(--ok);
+}
+
+/* ------------------------------------------------ 考试条（练一题页顶部） */
+/* 类名不能改：既有测试逐字断言 class="exam-bar sprint" */
+.exam-bar {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.exam-bar.sprint {
+  font-weight: 600;
+  background: var(--warn-weak);
+  border-color: var(--warn-border);
+}
+
+/* ------------------------------------------------------- 听写朗读键 .play */
+/* 类名不能改：既有测试逐字断言 class="play"（不带第二个类名），
+ * 所以这里把 .btn 的外观原样再给一份，而不是往页面里写内联样式。 */
+.play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-base);
+  line-height: var(--leading-tight);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.play:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------ 原图折叠（练习页） */
+/* 类名不能改：既有测试断言 <details class="original"> */
+.original > summary {
+  color: var(--accent);
+}
+
+.original img {
+  display: block;
+  width: auto;
+  max-height: 320px;
+  margin-top: var(--space-2);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+/* ------------------------------------------- 没有标准答案时的人工判分块 */
+.manual {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--warn-weak);
+  border-left: 4px solid var(--warn-border);
+  border-radius: var(--radius-sm);
+}
+
+.manual-title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+
+.ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+ol.similar {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ol.similar > li {
+  margin-bottom: var(--space-3);
+}
+
+/* ------------------------------------------------------ 教材库的两栏布局 */
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-start;
+  margin-top: var(--space-4);
+}
+
+.layout > .books {
+  flex: 1 1 13rem;
+  min-width: 0;
+}
+
+.layout > .panel {
+  flex: 2 1 20rem;
+  min-width: 0;
+}
+
+.books h2 {
+  margin-top: 0;
+}
+
+.books ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.books li {
+  margin: 0 0 var(--space-2);
+}
+
+.books a {
+  display: block;
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.books a.on {
+  background: var(--accent-weak);
+  border-color: var(--accent-border);
+}
+
+.books .meta {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.unit {
+  margin-top: var(--space-4);
+}
+
+.unit h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-base);
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.search .input {
+  flex: 1 1 12rem;
+}
+
+.submit-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border-strong);
+}

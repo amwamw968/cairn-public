@@ -1,0 +1,16 @@
+{% extends "_v3.html" %}
+{# Capability pages keep their content contract while using the shared reader shell. #}
+{% block main_class %} main--wide{% endblock %}
+{% block content %}
+<section class="workspace{% block workspace_class %}{% endblock %}">
+<details class="workspace-links">
+  <summary>{{ 'More tools' if ui_lang == 'en' else '更多功能' }}</summary>
+  <nav aria-label="{{ 'More tools' if ui_lang == 'en' else '更多功能' }}">
+    {% for href, zh, en in [('/scans', '已拍的卷子', 'Scans'), ('/practice', '练一题', 'Practice'), ('/books', '教材库', 'Books'), ('/exam', '考试', 'Exams'), ('/stats', '统计', 'Statistics'), ('/review-queue', '待复习', 'Review queue'), ('/tutor', '讲解', 'Tutor'), ('/entry', '手动输入', 'Manual entry'), ('/import', '导入备份', 'Import backup'), ('/export', '导出备份', 'Export backup'), ('/devices', '拍摄设备', 'Devices'), ('/tools', '工具开关', 'Tools')] %}
+    <a href="{{ href }}">{{ en if ui_lang == 'en' else zh }}</a>
+    {% endfor %}
+  </nav>
+</details>
+{% block main %}{% endblock %}
+</section>
+{% endblock %}

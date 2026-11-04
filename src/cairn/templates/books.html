@@ -1,0 +1,115 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 教材库{% endblock %}
+
+{% block main %}
+<h1>教材库</h1>
+
+{% if flash and flash.error %}
+<p class="notice notice--danger">{{ flash.error }}</p>
+{% elif flash %}
+<p class="notice notice--info">新增 {{ flash.added }} 条，跳过 {{ flash.skipped }} 条（已在错题库里）</p>
+{% endif %}
+{% if unit_flash %}
+<p class="notice notice--info">本单元 {{ unit_flash.words }} 个词，新增 {{ unit_flash.created }} 条，跳过 {{ unit_flash.skipped }} 条</p>
+{% endif %}
+
+<div class="layout">
+  <div class="books">
+    <h2>书</h2>
+    <ul>
+      {% for book in view.books %}
+      <li>
+        <a class="{% if book.selected %}on{% endif %}" href="/books?book_id={{ book.id }}">
+          {{ book.name }}
+          <span class="meta">{{ book.subject }} · {{ book.grade_label }} · {{ book.word_count }} 条</span>
+        </a>
+      </li>
+      {% else %}
+      <li class="hint">还没有教材。</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="panel">
+    {% if view.selected %}
+    <h2>{{ view.selected.name }}</h2>
+    <p class="hint">{{ view.selected.subject }} · {{ view.selected.grade_label }}{% if view.selected.source_note %} · 来源：{{ view.selected.source_note }}{% endif %}</p>
+
+    <form class="search" method="get" action="/books">
+      <input type="hidden" name="book_id" value="{{ view.selected.id }}">
+      <input class="input" type="search" name="q" value="{{ view.query }}" placeholder="按词搜（跨单元）：输入中文、英文或拼音">
+      <button type="submit" class="btn">搜索</button>
+      {% if view.query %}<a href="/books?book_id={{ view.selected.id }}">清除</a>{% endif %}
+    </form>
+
+    {% if view.empty_message %}
+    <p class="empty">{{ view.empty_message }}</p>
+    {% elif view.no_match_message %}
+    <p class="empty">{{ view.no_match_message }}</p>
+    {% else %}
+    <p class="hint">共 {{ view.matched }} 条{% if view.query %}（搜索「{{ view.query }}」的结果）{% endif %}。勾选后点底部按钮，一次加入错题库。</p>
+    <form method="post" action="/books/add">
+      <input type="hidden" name="book_id" value="{{ view.selected.id }}">
+      <input type="hidden" name="q" value="{{ view.query }}">
+      <input type="hidden" name="pick_count" value="{{ view.matched }}">
+      {% for unit in view.units %}
+      {% set state = gen_by_unit.get(unit.unit_no) %}
+      <div class="unit">
+        <h3>Unit {{ unit.unit_no }}{% if unit.title %} · {{ unit.title }}{% endif %}</h3>
+        {% if state %}
+        <p>
+          <button type="submit" class="btn" formaction="/books/{{ view.selected.id }}/units/{{ state.unit_id }}/generate" formmethod="post">出这一单元的听写题</button>
+          {% if state.generated %}<span class="hint">已生成 {{ state.generated }} 条</span>{% endif %}
+        </p>
+        {% endif %}
+        <table class="table table--scroll">
+          <thead><tr><th class="pick">加入</th><th class="pos">#</th><th>提示</th><th>要写的</th><th class="extra">音标 / 拼音</th><th class="state"></th></tr></thead>
+          <tbody>
+            {% for word in unit.words %}
+            <tr>
+              <td class="pick">
+                {% if word.added %}
+                <input type="checkbox" disabled title="已在错题库">
+                {% else %}
+                <input type="checkbox" name="word_{{ word.index }}" value="{{ word.id }}">
+                {% endif %}
+              </td>
+              <td class="pos">{{ word.position }}</td>
+              <td>{{ word.cue }}</td>
+              <td>{{ word.answer }}</td>
+              <td class="extra">{{ word.extra or '' }}</td>
+              <td class="state">{% if word.added %}<span class="badge badge--ok">已加入</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+      <div class="submit-bar">
+        <button type="submit" id="add-button" class="btn btn--primary">加入错题库</button>
+        <span class="hint" id="picked"></span>
+      </div>
+    </form>
+    <script>
+      (function () {
+        var count = document.getElementById("picked");
+        var button = document.getElementById("add-button");
+        var boxes = document.querySelectorAll("input[name^=word_]");
+        function refresh() {
+          var picked = 0;
+          for (var i = 0; i < boxes.length; i++) if (boxes[i].checked) picked++;
+          button.textContent = "加入错题库 " + picked + " 条";
+          count.textContent = picked ? "" : "先勾几条";
+        }
+        for (var i = 0; i < boxes.length; i++) boxes[i].addEventListener("change", refresh);
+        refresh();
+      })();
+    </script>
+    {% endif %}
+    {% elif view.empty_message %}
+    <p class="empty">{{ view.empty_message }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

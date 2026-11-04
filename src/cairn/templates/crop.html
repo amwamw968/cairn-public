@@ -1,0 +1,72 @@
+{% extends "_v3.html" %}
+{# 裁一下（v3 · 蓝图 E.3）：把卷子框出来。钩子一个不改：
+   #crop-verdict(data-reason) / #crop-stage / #crop-image / #crop-canvas /
+   #crop-handle-0..3 / #crop-status / #crop-apply / #crop-redetect / #crop-skip。
+   交互全在 static/crop-confirm.js（逻辑不动）。结论文案由 web.py 的 _crop_verdict
+   按 sidecar 的 reason 三档取好，模板不写死闸门话术。 #}
+
+{% block title %}{{ 'Cairn · Crop page' if ui_lang == 'en' else 'Cairn 凯恩 · 裁一下' }}{% endblock %}
+
+{% block content %}
+{% if workflow_mode %}<p class="hint"><a class="btn--ghost" id="workflow-language" href="?lang={{ 'zh' if ui_lang == 'en' else 'en' }}">{{ '中文' if ui_lang == 'en' else 'English' }}</a></p>{% endif %}
+<h1 class="page-title">{{ 'Outline the page' if ui_lang == 'en' else '把卷子框出来' }}</h1>
+
+<div class="verdict{% if verdict_modifier %} {{ verdict_modifier }}{% endif %}" id="crop-verdict" data-reason="{{ reason or '' }}">
+  <span class="verdict__label">{{ verdict }}</span>
+  <span class="verdict__meta">{{ 'Automatic · page covers' if ui_lang == 'en' else '自动 · 纸占' }} {{ facts.area_pct }}</span>
+</div>
+
+<details class="trace">
+  <summary class="btn--ghost">{{ 'Detection details' if ui_lang == 'en' else '检测数据' }}</summary>
+  <div class="facts">
+    <div class="facts__cell">
+      <p class="facts__value">{{ facts.area_pct }}</p>
+      <p class="facts__caption">{{ 'Page coverage' if ui_lang == 'en' else '纸占画面' }}</p>
+      <p class="facts__meta">{{ 'Image size unavailable' if ui_lang == 'en' and facts.size_text == '原图尺寸未知' else facts.size_text }}</p>
+    </div>
+    <div class="facts__cell">
+      <p class="facts__value">{{ facts.delta_text }}</p>
+      <p class="facts__caption">{{ 'Brightness difference' if ui_lang == 'en' else '纸面比周围亮' }}</p>
+      <p class="facts__meta">{{ '0–255 grayscale' if ui_lang == 'en' else '0–255 灰阶' }}</p>
+    </div>
+    <div class="facts__cell">
+      <p class="facts__value">{{ facts.edges_text }}</p>
+      <p class="facts__caption">{{ 'Edge alignment' if ui_lang == 'en' else '四边贴合度' }}</p>
+      <p class="facts__meta">{{ 'Automatic estimate' if ui_lang == 'en' else '自动判定' }}</p>
+    </div>
+  </div>
+</details>
+
+<div class="crop-stage" id="crop-stage" data-scan-id="{{ scan.id }}" data-lang="{{ ui_lang or 'zh' }}">
+  <img class="crop-stage__image" id="crop-image"
+       src="/scans/{{ scan.id }}/image?source=original"
+       alt="{{ 'Original image for scan' if ui_lang == 'en' else '照片' }} #{{ scan.id }}{{ '' if ui_lang == 'en' else ' 的原图' }}">
+  <canvas class="crop-stage__lines" id="crop-canvas" aria-hidden="true"></canvas>
+  <div class="crop-stage__handles" id="crop-handles">
+    <div class="crop-handle" id="crop-handle-0" data-corner="0" aria-label="{{ 'Top left' if ui_lang == 'en' else '左上角' }}"></div>
+    <div class="crop-handle" id="crop-handle-1" data-corner="1" aria-label="{{ 'Top right' if ui_lang == 'en' else '右上角' }}"></div>
+    <div class="crop-handle" id="crop-handle-2" data-corner="2" aria-label="{{ 'Bottom right' if ui_lang == 'en' else '右下角' }}"></div>
+    <div class="crop-handle" id="crop-handle-3" data-corner="3" aria-label="{{ 'Bottom left' if ui_lang == 'en' else '左下角' }}"></div>
+  </div>
+</div>
+
+<p class="notice notice--danger" id="crop-status" role="status" hidden></p>
+
+<div class="select-actions">
+  <button type="button" class="btn btn--primary" id="crop-apply">{{ 'Done, continue' if ui_lang == 'en' else '好了，下一步' }}</button>
+</div>
+
+<p class="hint">{{ 'Drag the four corners around the whole page, then continue to select questions.' if ui_lang == 'en' else '拖四个角把整张卷子框住；框好点「好了，下一步」，就去圈出做错的题。' }}</p>
+
+<div class="foot-links">
+  <a class="btn--ghost" href="/upload">{{ 'Retake' if ui_lang == 'en' else '重拍' }}</a>
+  <button type="button" class="linklike" id="crop-redetect">{{ 'Reload detection' if ui_lang == 'en' else '重新检测' }}</button>
+  <button type="button" class="linklike" id="crop-skip">{{ 'Skip cropping and use this image' if ui_lang == 'en' else '跳过裁边，直接用这张' }}</button>
+</div>
+
+<noscript><p class="notice notice--warn">{{ 'Enable JavaScript to adjust the corners.' if ui_lang == 'en' else '这个页面要靠 JavaScript 才能拖四个角；打开后再回来。' }}</p></noscript>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/crop-confirm.js" defer></script>
+{% endblock %}

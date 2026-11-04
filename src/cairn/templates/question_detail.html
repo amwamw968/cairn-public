@@ -1,0 +1,89 @@
+{% extends "_v3.html" %}
+{# 错题详情（v3 · E.10 配套）：facts 说清来路，题干大字，答案/讲解各一条，
+   原图折叠。编辑表单（#question-edit）逐字保留（POST /questions/{id}/edit 不动）；
+   「删掉」是文字链 + 二次确认（破坏性操作，弹层主按钮也写「删掉」）。
+   无内联 style、无 JS。 #}
+
+{% block title %}Cairn 凯恩 · 错题 #{{ question.id }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">这道错题{% if question_no %} · 卷面第 {{ question_no }} 题{% endif %}</h1>
+
+<div class="facts">
+  <div class="facts__cell">
+    <p class="facts__caption">科目</p>
+    <p class="facts__value">{{ question.subject }}</p>
+    <p class="facts__meta">{{ question.question_type }}</p>
+  </div>
+  <div class="facts__cell">
+    <p class="facts__caption">来源</p>
+    <p class="facts__value">{{ {"manual": "手动录入", "scan": "拍卷子"}.get(question.source, question.source) }}</p>
+  </div>
+  <div class="facts__cell">
+    <p class="facts__caption">改过</p>
+    {% if edited_at_text %}
+    <p class="facts__meta" id="question-edited">{{ edited_at_text }}</p>
+    {% else %}
+    <p class="facts__meta">未改过</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if answer_error %}<p class="notice notice--danger" role="alert">{{ answer_error }}</p>{% endif %}
+{% if answer_saved %}<p class="notice notice--info">答案已保存。这道题下次练到就按这条自动判。</p>{% endif %}
+
+<div class="ask-card">
+  <p class="practice-stem">{{ question.content }}</p>
+
+  <div class="verdict">
+    <span class="verdict__label">答案</span>
+    <span>{{ question.answer if question.answer else '还没有答案' }}</span>
+  </div>
+  <div class="verdict">
+    <span class="verdict__label">讲解</span>
+    <span>{{ question.analysis if question.analysis else '还没有讲解' }}</span>
+  </div>
+</div>
+
+{% if has_crop %}
+<div class="figure figure--shown">
+  <img src="/questions/{{ question.id }}/crop" alt="第 {{ question_no }} 题的原图裁块">
+</div>
+<p class="figure__cap">从摆正后的卷面裁下来的那一块，不是重新排版的题面</p>
+{% else %}
+<p class="figure__cap">暂无原图</p>
+{% endif %}
+
+<details id="question-edit"{% if edit_error %} open{% endif %}>
+  <summary class="btn--ghost">改这道题</summary>
+  {% if edit_error %}<p class="notice notice--danger" role="alert">{{ edit_error }}</p>{% endif %}
+  <form method="post" action="/questions/{{ question.id }}/edit">
+    <div class="edit-form">
+      <label class="edit-form__label" for="edit-content">题干</label>
+      <textarea class="edit-form__input" id="edit-content" name="content" rows="5">{{ question.content }}</textarea>
+      <label class="edit-form__label" for="edit-answer">答案</label>
+      <input class="edit-form__input" id="edit-answer" type="text" name="answer" value="{{ question.answer or '' }}"
+             placeholder="留空 = 这道题还没有标准答案">
+      <label class="edit-form__label" for="edit-analysis">讲解</label>
+      <textarea class="edit-form__input" id="edit-analysis" name="analysis" rows="3">{{ question.analysis or '' }}</textarea>
+    </div>
+    <div class="select-actions">
+      <button type="submit" id="edit-save" class="btn btn--primary">保存这道题</button>
+    </div>
+    <p class="select-foot">改完只留最后一次的时间和来源，不做版本历史。</p>
+  </form>
+</details>
+
+{# 破坏性操作：文字链「删掉」（红）+ 二次确认，弹层主按钮也写「删掉」不写「确认」 #}
+<details class="reject-box">
+  <summary class="linklike linklike--danger">删掉</summary>
+  <p class="hint--foot">删掉就找不回来了，连同这道题练过的记录。</p>
+  <form method="post" action="/questions/{{ question.id }}/delete">
+    <button type="submit" class="btn btn--secondary">删掉</button>
+  </form>
+</details>
+
+{% if scan %}
+<p class="select-foot"><a class="btn--ghost" href="/scans/{{ scan.id }}">照片详情</a></p>
+{% endif %}
+{% endblock %}

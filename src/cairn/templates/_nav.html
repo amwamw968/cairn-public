@@ -1,0 +1,85 @@
+{# 外壳导航（Phase 1-a-fix）：桌面左侧栏 + 手机底部五格，第 5 格「更多」是真面板。
+   四项顶层写成一个列表，侧栏与底栏循环共用同一份数据（§4.1「build it as data」）。
+   页面在 header block 里先 {% set nav_current = "<href>" %} 再 include 本文件；
+   命中哪一项，哪一项就带 aria-current="page"。
+   「更多」用 <details>/<summary> 展开，不写 JS；面板四组只在这里写一次（more_groups），
+   侧栏底部与底栏各渲染一份，两处永远同源。 #}
+{% set nav_current = nav_current | default("", true) %}
+{% set nav_items = [
+     ("i-house", "今天", "/"),
+     ("i-images", "卷子", "/scans"),
+     ("i-camera", "拍", "/upload"),
+     ("i-book-open-check", "复习", "/practice"),
+] %}
+{# §4.3 的四组。中文文案逐字照卡；诊断组最后、次要色。
+   §4.3 里的「重新连接」和「整页识别原始数据」**故意不放这里**，因为本仓库里它们没有顶层入口：
+   前者是设备页上的一个动作按钮，后者是 /scans/{id}/ocr（每张卷子各一页）。照抄会造出两个死链。
+   TODO(Phase 5)：/review-queue 折进复习视图后删掉「待复习」这一条。 #}
+{% set more_groups = [
+     ("学习", [("错题本", "/questions"), ("教材库", "/books"), ("考试", "/exam"), ("统计", "/stats"), ("待复习", "/review-queue"), ("讲解", "/tutor")]),
+     ("数据", [("手动输入", "/entry"), ("导入备份", "/import"), ("导出 Anki", "/export")]),
+     ("偏好", [("设置", "/settings")]),
+     ("卷子", [("拍摄设备", "/devices")]),
+     ("诊断", [("工具开关", "/tools")]),
+] %}
+{% set top_level_hrefs = nav_items | map(attribute=2) | list %}
+{% set more_active = nav_current == "#more" or nav_current not in top_level_hrefs %}
+
+{% macro more_panel() %}
+    <div class="more__panel">
+      {% for title, links in more_groups %}
+      <div class="more__group{% if title == "诊断" %} more__group--diagnostic{% endif %}">
+        <p class="more__title">{{ title }}</p>
+        <ul class="more__links">
+          {% for label, href in links %}
+          <li><a class="more__link" href="{{ href }}"{% if href == nav_current %} aria-current="page"{% endif %}>{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+{% endmacro %}
+
+<div class="mobile-brand">
+  <img src="/static/logo-cairn.svg?v=20261103-ui" width="32" height="32" alt="">
+  <span>Cairn 凯恩</span>
+</div>
+
+<nav class="sidebar" aria-label="主导航">
+  <div class="sidebar__brand">
+    <img src="/static/logo-cairn.svg?v=20261103-ui" width="32" height="32" alt="">
+    <span>Cairn 凯恩</span>
+  </div>
+  <ul class="nav">
+    {% for icon, label, href in nav_items %}
+    <li>
+      <a class="nav__item{% if href == nav_current %} nav__item--active{% endif %}" href="{{ href }}"{% if href == nav_current %} aria-current="page"{% endif %}>
+        <svg class="icon icon--24" aria-hidden="true"><use href="/static/icons.svg#{{ icon }}"></use></svg>
+        <span>{{ label }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  <details class="more more--rail">
+    <summary class="nav__item nav__item--more{% if more_active %} nav__item--active{% endif %}"{% if more_active %} aria-current="page"{% endif %}>
+      <svg class="icon icon--24" aria-hidden="true"><use href="/static/icons.svg#i-ellipsis"></use></svg>
+      <span>更多</span>
+    </summary>
+    {{ more_panel() }}
+  </details>
+</nav>
+<nav class="tabbar" aria-label="底部导航">
+  {% for icon, label, href in nav_items %}
+  <a class="tabbar__item{% if label == "拍" %} tabbar__item--primary{% endif %}" href="{{ href }}"{% if href == nav_current %} aria-current="page"{% endif %}>
+    <svg class="icon icon--24" aria-hidden="true"><use href="/static/icons.svg#{{ icon }}"></use></svg>
+    <span>{{ label }}</span>
+  </a>
+  {% endfor %}
+  <details class="more more--tabbar">
+    <summary class="tabbar__item tabbar__item--more"{% if more_active %} aria-current="page"{% endif %}>
+      <svg class="icon icon--24" aria-hidden="true"><use href="/static/icons.svg#i-ellipsis"></use></svg>
+      <span>更多</span>
+    </summary>
+    {{ more_panel() }}
+  </details>
+</nav>

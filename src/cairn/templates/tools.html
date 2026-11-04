@@ -1,0 +1,87 @@
+{% extends "_base.html" %}
+
+{% block title %}Cairn · 工具开关{% endblock %}
+
+{% block main %}
+<h1>工具开关</h1>
+
+{% if disabled_count %}
+<div class="notice notice--warn">
+  <p>有 {{ disabled_count }} 个工具被关掉了。关掉不是坏掉：相关页面会自动走降级路径，页面上会写明缺了哪一步。</p>
+</div>
+{% else %}
+<div class="notice notice--info">
+  <p>八个工具全部开启。</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2 class="card__title">八样能力</h2>
+  <div class="table-scroll" tabindex="0" aria-label="工具状态表，可横向滚动">
+  <table class="metrics">
+    <tr>
+      <th>工具</th>
+      <th>干什么</th>
+      <th>状态</th>
+      <th>开关</th>
+      <th>关掉的原因</th>
+    </tr>
+    {% for row in rows %}
+    <tr>
+      <td>{{ row.title }}<br><span class="hint">{{ row.name }}</span></td>
+      <td>{{ row.description }}</td>
+      <td>
+        {% if row.enabled %}
+        <span class="badge badge--ok">开着</span>
+        {% else %}
+        <span class="badge badge--warn">关了</span>
+        {% endif %}
+      </td>
+      <td><code>CAIRN_TOOL_{{ row.name | upper }}=0</code></td>
+      <td>{% if row.reason %}{{ row.reason }}{% else %}<span class="hint">—</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="card__title">当前配方</h2>
+  {% if recipe_error %}
+  <p class="notice notice--warn">配方读不出来：{{ recipe_error }}</p>
+  {% else %}
+  <p>{{ recipe.title }} <span class="hint">{{ recipe.name }} · {{ recipe.steps | length }} 步</span></p>
+  <div class="table-scroll" tabindex="0" aria-label="配方步骤表，可横向滚动">
+  <table class="metrics">
+    <tr>
+      <th>步骤</th>
+      <th>工具</th>
+      <th>状态</th>
+      <th>耗时</th>
+    </tr>
+    {% for step in recipe_rows %}
+    <tr>
+      <td>{{ step.name }}</td>
+      <td>{{ step.title }}<br><span class="hint">{{ step.tool }}</span></td>
+      <td>
+        {% if step.enabled %}
+        <span class="badge badge--ok">开着</span>
+        {% else %}
+        <span class="badge badge--warn">关了</span>
+        {% endif %}
+      </td>
+      <td><span class="hint">—</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p class="hint">顺序就是照片页顶部那行痕迹的顺序（摆正 ✓ · 切题 ✓ · 认字 ✓ 1.1s）。耗时只在真正跑过一页之后才有，这里只反映开关。</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2 class="card__title">怎么关</h2>
+  <p>在启动环境里写 <code>CAIRN_TOOL_&lt;NAME&gt;=0</code>，重启后生效。写 <code>1</code> 或不写就是开着。</p>
+  <p class="hint">文字识别还认老变量：<code>CAIRN_OCR_DISABLE=1</code> 与 <code>CAIRN_TOOL_OCR=0</code> 等价。</p>
+</div>
+{% endblock %}

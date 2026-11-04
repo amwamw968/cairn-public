@@ -1,0 +1,17 @@
+{% extends "_v3.html" %}
+{% block title %}Cairn · {{ 'Collection practice' if locale == 'en' else '题集练习' }}{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ 'Collection practice' if locale == 'en' else '题集练习' }}</h1>
+<p><a href="?lang={{ 'zh-Hans' if locale == 'en' else 'en' }}">{{ '中文' if locale == 'en' else 'English' }}</a></p>
+{% if error %}<p class="notice">{{ 'Could not add the collection. Check the published workflow and existing review strategy.' if locale == 'en' else error }}</p>{% endif %}
+{% if result %}<p class="notice">{% if locale == 'en' %}Added {{ result[0] }}; kept {{ result[1] }} existing practice items.{% else %}新加入 {{ result[0] }} 道，保留已有练习 {{ result[1] }} 道。{% endif %}</p>{% endif %}
+{% if manifest %}
+<section class="section">
+  <h2>{{ manifest.name }}</h2>
+  <p>{{ manifest.subject }} · {{ 'Version' if locale == 'en' else '版本' }} {{ manifest.version }} · {{ manifest.item_count }} {{ ('question' if manifest.item_count == 1 else 'questions') if locale == 'en' else '道题' }}</p>
+  <p class="hint--foot">{{ 'Adds independent copies from this version to the regular practice queue. A question already in your practice may therefore appear again; starting this version again keeps its existing progress.' if locale == 'en' else '将此版本的独立副本加入日常练习队列；若原题已在练习中，可能会再次出现。重复加入同一版本会保留已有进度。' }}</p>
+  <form method="post" action="/collection-practice?lang={{ locale }}"><button type="submit" class="btn btn--primary">{{ 'Add to practice' if locale == 'en' else '加入日常练习' }}</button></form>
+</section>
+{% else %}<p>{{ 'No published collection is available for this learner.' if locale == 'en' else '当前学习者没有可用的已发布题集。' }}</p>{% endif %}
+<p><a href="/">{{ 'Go to daily practice' if locale == 'en' else '前往今天的练习' }}</a></p>
+{% endblock %}

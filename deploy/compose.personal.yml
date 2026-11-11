@@ -1,0 +1,26 @@
+# Staging only: requires a separately configured HTTPS and identity gateway.
+# Run from repository root: docker compose -f deploy/compose.personal.yml up --build -d
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.personal
+    image: cairn-personal:staging
+    ports:
+      - "127.0.0.1:18100:18100"
+    environment:
+      CAIRN_DB_URL: sqlite:////data/cairn.db
+      CAIRN_TTS_CACHE_DIR: /data/tts-cache
+      CAIRN_WORKFLOW_ADMIN_TOKEN: ${CAIRN_WORKFLOW_ADMIN_TOKEN:?Set a random operator token securely}
+      CAIRN_WORKFLOW_CANVAS_ORIGINS: ${CAIRN_WORKFLOW_CANVAS_ORIGINS:?Set exact Studio origin}
+    volumes:
+      - cairn-data:/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+volumes:
+  cairn-data:

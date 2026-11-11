@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 CAIRN_DB_URL=sqlite:////data/cairn.db CAIRN_TTS_CACHE_DIR=/data/tts-cache
+RUN apt-get update && apt-get install -y --no-install-recommends libxcb1 libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+WORKDIR /srv/cairn
+COPY pyproject.toml LICENSE NOTICE ./
+COPY src ./src
+RUN pip install --no-cache-dir . && pip check
+RUN groupadd --gid 10001 cairn && useradd --uid 10001 --gid cairn --create-home cairn && mkdir /data && chown cairn:cairn /data
+USER cairn
+EXPOSE 18100
+CMD ["uvicorn", "cairn.web:app", "--host", "0.0.0.0", "--port", "18100", "--no-proxy-headers"]
